@@ -1,0 +1,7 @@
+server run 
+cd server
+uvicorn main:app --reload
+
+client site
+cd emotion-recognition
+$ npm start
