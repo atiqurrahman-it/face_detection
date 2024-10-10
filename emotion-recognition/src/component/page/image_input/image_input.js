@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { InputBackground } from "../../backgorund/inputBackground";
 import Nav from "../../navbar/navbar";
 
 const ImageInput = () => {
@@ -79,10 +80,20 @@ const ImageInput = () => {
     };
   };
 
+    const backgroundStyle = {
+      backgroundImage: "url(/background1.png)",
+      backgroundSize: "cover",
+      backgroundPosition: "center",
+      backgroundRepeat: "no-repeat",
+      width: "100%", // Full width
+      height: "100vh", // Full height
+    };
+
   return (
-    <div>
+    <div style={backgroundStyle} className="z-10">
+    {/* <div  className="z-10"> */}
       <Nav />
-      <div style={{ textAlign: "center", marginTop: 50 }}>
+      <div style={{ textAlign: "center", marginTop: 100 }}>
         <div
           style={{
             display: "flex",
@@ -100,7 +111,7 @@ const ImageInput = () => {
                 {/* Cover photo */}
               </label>
               <div
-                className="mt-2 flex justify-center rounded-lg border border-dashed border-gray-900/25 px-6 py-10"
+                className="mt-2 flex justify-center rounded-lg border border-dashed border-white px-6 py-10"
                 onDrop={handleDrop}
                 onDragOver={(e) => e.preventDefault()}
               >
@@ -120,7 +131,7 @@ const ImageInput = () => {
                   <div className="mt-4 flex text-sm leading-6 text-gray-600">
                     <label
                       htmlFor="file-upload"
-                      className="relative cursor-pointer rounded-md bg-white font-semibold text-indigo-600 focus-within:outline-none focus-within:ring-2 focus-within:ring-indigo-600 focus-within:ring-offset-2 hover:text-indigo-500"
+                      className="relative p-1 cursor-pointer rounded-md bg-white font-semibold text-indigo-600 focus-within:outline-none focus-within:ring-2 focus-within:ring-indigo-600 focus-within:ring-offset-2 hover:text-indigo-500"
                     >
                       <span>Upload a file</span>
                       <input
@@ -131,9 +142,9 @@ const ImageInput = () => {
                         onChange={handleImageUpload}
                       />
                     </label>
-                    <p className="pl-1">or drag and drop</p>
+                    <p className="pl-1 text-white">or drag and drop</p>
                   </div>
-                  <p className="text-xs leading-5 text-gray-600">
+                  <p className="text-xs leading-5 text-white">
                     PNG, JPG, GIF up to 100MB
                   </p>
                   {error && <p className="text-red-500">{error}</p>}
@@ -151,7 +162,10 @@ const ImageInput = () => {
           </div>
 
           <div className="Prediction" style={{ marginTop: 20 }}>
-            <label htmlFor="finalEmotionProgress" style={{ color: "black" }}>
+            <label
+              htmlFor="finalEmotionProgress"
+              style={{ color: "white", marginBottom: "3px" }}
+            >
               Emotion: {finalEmotion} ({finalPercentage}%)
             </label>
             <br />
@@ -174,12 +188,14 @@ const ImageInput = () => {
                 height: 50,
                 fontSize: "30px",
                 textAlign: "center",
+                borderRadius: "10px",
               }}
               readOnly
             />
           </div>
         </div>
       </div>
+      <InputBackground id="tsparticles" className=" inset-0 z-0" />
     </div>
   );
 };

@@ -1,0 +1,5 @@
+#slider a.active {
+  color: rgb(65, 47, 47);
+  text-decoration: underline;
+  text-underline-offset: 6px;
+}
