@@ -9,53 +9,34 @@ const EMOTION_META = {
 };
 
 const EmotionBreakdown = ({ emotion, percentage, predictions, hint }) => {
-  const entries = predictions
-    ? Object.entries(predictions)
-        .map(([name, value]) => [name, Math.round(value * 100)])
-        .sort((a, b) => b[1] - a[1])
-    : [];
-
+  const hasResult = Boolean(predictions);
   const topMeta = EMOTION_META[emotion] || { emoji: "🤔", bar: "bg-emerald-500" };
 
   return (
-    <div className="w-full max-w-sm shrink-0 rounded-2xl border border-slate-200 bg-white/90 p-6 shadow-lg backdrop-blur transition-colors dark:border-slate-800 dark:bg-slate-900/80">
-      <div className="mb-6 flex items-center gap-4">
-        <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-emerald-500/10 text-3xl">
+    <div className="w-full rounded-2xl border border-slate-200 bg-white/90 p-5 shadow-lg backdrop-blur transition-colors dark:border-slate-800 dark:bg-slate-900/80">
+      <div className="flex items-center gap-4">
+        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-emerald-500/10 text-2xl">
           {topMeta.emoji}
         </div>
-        <div>
+        <div className="min-w-0 flex-1">
           <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
             Detected Emotion
           </p>
-          <p className="text-2xl font-bold text-slate-900 dark:text-white">
+          <p className="truncate text-xl font-bold text-slate-900 dark:text-white">
             {emotion} <span className="text-emerald-500">{percentage}%</span>
           </p>
         </div>
       </div>
 
-      {entries.length > 0 ? (
-        <div className="space-y-3">
-          {entries.map(([name, value]) => (
-            <div key={name}>
-              <div className="mb-1 flex justify-between text-xs font-medium text-slate-500 dark:text-slate-400">
-                <span>
-                  {EMOTION_META[name]?.emoji} {name}
-                </span>
-                <span>{value}%</span>
-              </div>
-              <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
-                <div
-                  className={`h-full rounded-full transition-all duration-500 ${
-                    EMOTION_META[name]?.bar || "bg-emerald-500"
-                  }`}
-                  style={{ width: `${value}%` }}
-                />
-              </div>
-            </div>
-          ))}
+      {hasResult ? (
+        <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+          <div
+            className={`h-full rounded-full transition-all duration-500 ${topMeta.bar}`}
+            style={{ width: `${percentage}%` }}
+          />
         </div>
       ) : (
-        <p className="text-sm text-slate-500 dark:text-slate-400">
+        <p className="mt-4 text-sm text-slate-500 dark:text-slate-400">
           {hint || "No face detected yet."}
         </p>
       )}

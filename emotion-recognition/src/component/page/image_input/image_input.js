@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import Background from "../../backgorund/backgorun";
 import Nav from "../../navbar/navbar";
 import EmotionBreakdown from "../../common/EmotionBreakdown";
+import FaceOverlay from "../../common/FaceOverlay";
 
 const WS_URL = "ws://localhost:8000";
 const VALID_TYPES = ["image/png", "image/jpeg", "image/gif"];
@@ -9,9 +10,8 @@ const MAX_SIZE_BYTES = 10 * 1024 * 1024;
 
 const ImageInput = () => {
   const [selectedImage, setSelectedImage] = useState(null);
-  const [finalEmotion, setFinalEmotion] = useState("None");
-  const [finalPercentage, setFinalPercentage] = useState(0);
-  const [predictions, setPredictions] = useState(null);
+  const [faces, setFaces] = useState([]);
+  const [frameSize, setFrameSize] = useState({ width: 0, height: 0 });
   const [error, setError] = useState("");
   const [isDragging, setIsDragging] = useState(false);
 
@@ -26,20 +26,9 @@ const ImageInput = () => {
 
     socket.onmessage = (event) => {
       const pred_log = JSON.parse(event.data);
-      if (pred_log.error) {
-        setError(pred_log.error);
-        setPredictions(null);
-        return;
-      }
-
-      const predictionMap = pred_log["predictions"];
-      const emotions = Object.keys(predictionMap);
-      const values = emotions.map((emotion) => predictionMap[emotion] * 100);
-      const maxIndex = values.indexOf(Math.max(...values));
-
-      setFinalEmotion(emotions[maxIndex]);
-      setFinalPercentage(Math.round(values[maxIndex]));
-      setPredictions(predictionMap);
+      setFrameSize({ width: pred_log.imageWidth, height: pred_log.imageHeight });
+      setFaces(pred_log.faces || []);
+      setError(pred_log.error || "");
     };
 
     socket.onerror = (error) => console.error("WebSocket error:", error);
@@ -61,6 +50,7 @@ const ImageInput = () => {
     reader.onloadend = () => {
       const base64Image = reader.result;
       setSelectedImage(base64Image);
+      setFaces([]);
       setError("");
       sendImageToServer(base64Image);
     };
@@ -78,8 +68,8 @@ const ImageInput = () => {
       <Background />
       <div className="relative z-10">
         <Nav />
-        <main className="mx-auto flex max-w-5xl flex-col items-center gap-8 px-4 pb-16 pt-10 lg:flex-row lg:items-start lg:justify-center">
-          <div className="w-full max-w-xl rounded-2xl border border-slate-200 bg-white p-6 shadow-lg transition-colors dark:border-slate-800 dark:bg-slate-900">
+        <main className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 pb-16 pt-10 xl:flex-row xl:items-start">
+          <div className="w-full rounded-2xl border border-slate-200 bg-white p-6 shadow-lg transition-colors dark:border-slate-800 dark:bg-slate-900 xl:max-w-xl xl:shrink-0">
             <h2 className="mb-4 font-semibold text-slate-800 dark:text-white">
               Upload a Photo
             </h2>
@@ -126,26 +116,60 @@ const ImageInput = () => {
               />
             </label>
 
-            {error && (
-              <p className="mt-3 text-sm text-rose-500">{error}</p>
+            {error && <p className="mt-3 text-sm text-rose-500">{error}</p>}
+
+            {faces.length > 1 && (
+              <p className="mt-3 text-sm text-emerald-600 dark:text-emerald-400">
+                {faces.length} faces detected
+              </p>
             )}
 
             {selectedImage && (
-              <img
-                src={selectedImage}
-                alt="Uploaded preview"
-                className="mt-5 w-full rounded-xl object-cover"
-                style={{ maxHeight: 320 }}
-              />
+              <div className="relative mt-5 overflow-hidden rounded-xl">
+                <img src={selectedImage} alt="Uploaded preview" className="w-full" />
+                <FaceOverlay
+                  faces={faces}
+                  sourceWidth={frameSize.width}
+                  sourceHeight={frameSize.height}
+                />
+              </div>
             )}
           </div>
 
-          <EmotionBreakdown
-            emotion={finalEmotion}
-            percentage={finalPercentage}
-            predictions={predictions}
-            hint="Upload a photo to see the emotion breakdown."
-          />
+          <div className="w-full xl:flex-1">
+            {faces.length === 0 ? (
+              <div className="w-full max-w-sm">
+                <EmotionBreakdown
+                  emotion="None"
+                  percentage={0}
+                  predictions={null}
+                  hint="Upload a photo to see the emotion breakdown."
+                />
+              </div>
+            ) : (
+              <div className="grid grid-cols-[repeat(auto-fit,minmax(260px,1fr))] gap-6">
+                {faces.map((face, index) => {
+                  const percentage = Math.round(
+                    Math.max(...Object.values(face.predictions)) * 100
+                  );
+                  return (
+                    <div key={index}>
+                      {faces.length > 1 && (
+                        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                          Face {index + 1}
+                        </p>
+                      )}
+                      <EmotionBreakdown
+                        emotion={face.emotion}
+                        percentage={percentage}
+                        predictions={face.predictions}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </main>
       </div>
     </div>

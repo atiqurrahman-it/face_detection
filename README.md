@@ -27,7 +27,18 @@ face_detection/
   sudo apt install python3.10 python3.10-venv
   ```
 - Node.js 16+ and npm
+- Git
 - A webcam (for the live face-detection page)
+
+## 0. Clone the repository
+
+```bash
+git clone git@github.com:atiqurrahman-it/face_detection.git
+# or, over HTTPS:
+# git clone https://github.com/atiqurrahman-it/face_detection.git
+
+cd face_detection
+```
 
 ## 1. Run the backend (server)
 
@@ -62,12 +73,35 @@ npm start
 
 This starts the React app on `http://localhost:3000`.
 
+## Full process (clone → run, end to end)
+
+Two terminals are needed, one for the backend and one for the frontend.
+
+```bash
+# 1. Clone
+git clone git@github.com:atiqurrahman-it/face_detection.git
+cd face_detection
+
+# 2. Terminal 1 — backend
+cd server
+python3.10 -m venv myenv
+source myenv/bin/activate      # Windows: myenv\Scripts\activate
+pip install -r requirements.txt
+uvicorn main:app --reload      # keep this running (ws://127.0.0.1:8000)
+
+# 3. Terminal 2 — frontend
+cd face_detection/emotion-recognition
+npm install
+npm start                       # keep this running (http://localhost:3000)
+```
+
 ## Usage
 
 1. Start the backend, then the frontend, as above.
 2. Open `http://localhost:3000` in your browser.
 3. Navigate to the face detection page (`/face-detection`) to run live webcam emotion detection, or `/input-image` to run detection on an uploaded image.
 4. Allow camera access when prompted; detected faces and their predicted emotion will be shown on screen.
+5. Stop either process with `Ctrl+C` in its terminal when done.
 
 ## Notes
 
