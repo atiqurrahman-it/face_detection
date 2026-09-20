@@ -1,5 +1,6 @@
 import json
 import base64
+import os
 from typing import Optional
 from fastapi import FastAPI, WebSocket
 import cv2
@@ -9,9 +10,11 @@ from keras.preprocessing.image import img_to_array
 
 app = FastAPI()
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
 # Load your local model and Haar cascade classifier
-face_classifier = cv2.CascadeClassifier(r'.\haarcascade_frontalface_default.xml')
-classifier = load_model(r'.\model.h5')
+face_classifier = cv2.CascadeClassifier(os.path.join(BASE_DIR, 'haarcascade_frontalface_default.xml'))
+classifier = load_model(os.path.join(BASE_DIR, 'model.h5'))
 
 # Emotion labels corresponding to the classifier
 emotion_labels = ['Angry', 'Disgust', 'Fear', 'Happy', 'Neutral', 'Sad', 'Surprise']

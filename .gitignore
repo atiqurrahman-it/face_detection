@@ -1,1 +1,5 @@
 emotion-recognition/node_modules
+server/myenv
+server/.venv
+__pycache__/
+*.pyc
