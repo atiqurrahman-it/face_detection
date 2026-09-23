@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from typing import List, Optional
 
-from pydantic import BaseModel, constr
+from pydantic import BaseModel, constr, validator
 
 from .models import Role
 
@@ -163,3 +163,9 @@ class CriminalUpdate(BaseModel):
     arrest_date: Optional[date] = None
     arresting_officer: Optional[str] = None
     repeat_offender: Optional[bool] = None
+
+    @validator("full_name", "gender", "crime_type", "status", "repeat_offender")
+    def _reject_null_for_required_fields(cls, v):
+        if v is None:
+            raise ValueError("must not be cleared to null")
+        return v

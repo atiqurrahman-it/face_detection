@@ -1,3 +1,4 @@
+import os
 from datetime import datetime
 from typing import Optional
 
@@ -11,7 +12,7 @@ from ..database import get_db
 from ..deps import require_roles
 from ..models import Criminal, CriminalPhoto, CriminalStatus, Role, Station, User
 from ..schemas import CriminalCreate, CriminalListOut, CriminalOut, CriminalUpdate
-from ..storage import save_criminal_photo
+from ..storage import CONTENT_TYPE_EXTENSIONS, remove_criminal_photos, save_criminal_photo
 from .stations import _station_scope
 
 router = APIRouter(prefix="/criminals", tags=["criminals"])
@@ -22,6 +23,19 @@ def _parse_payload(payload: str, model):
         return model.parse_raw(payload)
     except ValidationError as exc:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=exc.errors())
+
+
+def _validate_photo(upload: UploadFile) -> None:
+    if upload.content_type not in CONTENT_TYPE_EXTENSIONS:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Unsupported photo type: {upload.content_type}",
+        )
+    upload.file.seek(0, os.SEEK_END)
+    size = upload.file.tell()
+    upload.file.seek(0)
+    if size == 0:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Photo file is empty")
 
 
 @router.post("", response_model=CriminalOut, status_code=status.HTTP_201_CREATED)
@@ -75,6 +89,7 @@ async def create_criminal(
 
     for angle, upload in (("front", front_photo), ("left_profile", left_photo), ("right_profile", right_photo)):
         if upload is not None:
+            _validate_photo(upload)
             path = save_criminal_photo(criminal.criminal_code, angle, upload)
             db.add(CriminalPhoto(criminal_id=criminal.id, photo_path=path, angle=angle))
 
@@ -94,8 +109,10 @@ def delete_criminal(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Criminal not found")
     _station_scope(criminal.station_id, current_user)
 
+    criminal_code = criminal.criminal_code
     db.delete(criminal)
     db.commit()
+    remove_criminal_photos(criminal_code)
     return None
 
 
@@ -167,6 +184,7 @@ async def update_criminal(
 
     for angle, upload in (("front", front_photo), ("left_profile", left_photo), ("right_profile", right_photo)):
         if upload is not None:
+            _validate_photo(upload)
             path = save_criminal_photo(criminal.criminal_code, angle, upload)
             existing = next((p for p in criminal.photos if p.angle == angle), None)
             if existing:

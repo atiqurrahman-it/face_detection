@@ -51,6 +51,7 @@ class CriminalStatus(str, enum.Enum):
 
 class Criminal(Base):
     __tablename__ = "criminals"
+    __table_args__ = {"sqlite_autoincrement": True}
 
     id = Column(Integer, primary_key=True)
     criminal_code = Column(String, unique=True, nullable=False)

@@ -336,3 +336,65 @@ def test_delete_404_for_missing_criminal(client, db_session):
     response = client.delete("/criminals/999", headers=_auth(token))
 
     assert response.status_code == 404
+
+
+def test_edit_rejects_explicit_null_for_required_field(client, db_session):
+    station = _make_station(db_session)
+    _make_user(db_session, "officer1", "officerpass1", Role.USER, station_id=station.id)
+    token = _login(client, "officer1", "officerpass1")
+    created = _create_criminal(client, token, station.id)
+
+    response = client.patch(
+        f"/criminals/{created['id']}",
+        data={"payload": json.dumps({"full_name": None})},
+        headers=_auth(token),
+    )
+
+    assert response.status_code == 422
+
+
+def test_delete_frees_criminal_code_and_removes_photo_files(client, db_session):
+    station = _make_station(db_session)
+    _make_user(db_session, "dhk01admin", "adminpass1", Role.ADMIN, station_id=station.id)
+    token = _login(client, "dhk01admin", "adminpass1")
+    first = _create_criminal(client, token, station.id)
+    photo_url = first["photos"][0]["url"]
+
+    delete_response = client.delete(f"/criminals/{first['id']}", headers=_auth(token))
+    assert delete_response.status_code == 204
+
+    photo_after_delete = client.get(photo_url)
+    assert photo_after_delete.status_code == 404
+
+    second = _create_criminal(client, token, station.id, full_name="Someone Else")
+    assert second["criminal_code"] != first["criminal_code"]
+
+
+def test_create_criminal_rejects_non_image_photo(client, db_session):
+    station = _make_station(db_session)
+    _make_user(db_session, "officer1", "officerpass1", Role.USER, station_id=station.id)
+    token = _login(client, "officer1", "officerpass1")
+
+    response = client.post(
+        "/criminals",
+        data={"payload": json.dumps(_base_payload(station.id))},
+        files={"front_photo": ("evil.html", io.BytesIO(b"<script>alert(1)</script>"), "text/html")},
+        headers=_auth(token),
+    )
+
+    assert response.status_code == 422
+
+
+def test_create_criminal_rejects_empty_photo(client, db_session):
+    station = _make_station(db_session)
+    _make_user(db_session, "officer1", "officerpass1", Role.USER, station_id=station.id)
+    token = _login(client, "officer1", "officerpass1")
+
+    response = client.post(
+        "/criminals",
+        data={"payload": json.dumps(_base_payload(station.id))},
+        files={"front_photo": ("front.jpg", io.BytesIO(b""), "image/jpeg")},
+        headers=_auth(token),
+    )
+
+    assert response.status_code == 422

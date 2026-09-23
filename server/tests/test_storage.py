@@ -1,7 +1,12 @@
 import io
 import os
 
-from app.storage import UPLOAD_ROOT, save_criminal_photo
+from app.storage import BASE_DIR, UPLOAD_ROOT, save_criminal_photo
+
+
+def test_upload_root_is_redirected_away_from_real_uploads_dir_during_tests():
+    real_uploads_dir = os.path.join(BASE_DIR, "uploads")
+    assert UPLOAD_ROOT != real_uploads_dir
 
 
 class _FakeUpload:
