@@ -3,6 +3,9 @@ import HomePage from "./component/page/home/home_page";
 import RealFaceDetection from "./component/page/face_detection/face_detection";
 import ImageInput from "./component/page/image_input/image_input";
 import LoginPage from "./component/page/login/login_page";
+import SuperAdminDashboard from "./component/page/dashboard/super_admin_dashboard";
+import StationDashboard from "./component/page/dashboard/station_dashboard";
+import UserManagement from "./component/page/users/user_management";
 import ProtectedRoute from "./component/routing/ProtectedRoute";
 import { AuthProvider } from "./context/AuthContext";
 import { ThemeProvider } from "./context/ThemeContext";
@@ -22,7 +25,7 @@ function App() {
               path="/admin"
               element={
                 <ProtectedRoute roles={["super_admin"]}>
-                  <div>Super Admin Dashboard placeholder</div>
+                  <SuperAdminDashboard />
                 </ProtectedRoute>
               }
             />
@@ -31,7 +34,16 @@ function App() {
               path="/dashboard"
               element={
                 <ProtectedRoute roles={["admin", "user"]}>
-                  <div>Station Dashboard placeholder</div>
+                  <StationDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              exact
+              path="/users"
+              element={
+                <ProtectedRoute roles={["admin"]}>
+                  <UserManagement />
                 </ProtectedRoute>
               }
             />
