@@ -10,7 +10,7 @@ from starlette import status
 from ..database import get_db
 from ..deps import require_roles
 from ..models import Criminal, CriminalPhoto, CriminalStatus, Role, Station, User
-from ..schemas import CriminalCreate, CriminalListOut, CriminalOut
+from ..schemas import CriminalCreate, CriminalListOut, CriminalOut, CriminalUpdate
 from ..storage import save_criminal_photo
 from .stations import _station_scope
 
@@ -126,4 +126,38 @@ def get_criminal(
     criminal = db.query(Criminal).filter(Criminal.id == criminal_id).first()
     if not criminal:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Criminal not found")
+    return criminal
+
+
+@router.patch("/{criminal_id}", response_model=CriminalOut)
+async def update_criminal(
+    criminal_id: int,
+    payload: str = Form(...),
+    front_photo: UploadFile = File(None),
+    left_photo: UploadFile = File(None),
+    right_photo: UploadFile = File(None),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(Role.SUPER_ADMIN, Role.ADMIN, Role.USER)),
+):
+    criminal = db.query(Criminal).filter(Criminal.id == criminal_id).first()
+    if not criminal:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Criminal not found")
+    _station_scope(criminal.station_id, current_user)
+
+    data = _parse_payload(payload, CriminalUpdate)
+    for field, value in data.dict(exclude_unset=True).items():
+        setattr(criminal, field, value)
+    criminal.updated_at = datetime.utcnow()
+
+    for angle, upload in (("front", front_photo), ("left_profile", left_photo), ("right_profile", right_photo)):
+        if upload is not None:
+            path = save_criminal_photo(criminal.criminal_code, angle, upload)
+            existing = next((p for p in criminal.photos if p.angle == angle), None)
+            if existing:
+                existing.photo_path = path
+            else:
+                db.add(CriminalPhoto(criminal_id=criminal.id, photo_path=path, angle=angle))
+
+    db.commit()
+    db.refresh(criminal)
     return criminal

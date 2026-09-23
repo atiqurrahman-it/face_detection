@@ -137,3 +137,29 @@ class CriminalListOut(BaseModel):
     total: int
     page: int
     page_size: int
+
+
+class CriminalUpdate(BaseModel):
+    full_name: Optional[Name] = None
+    gender: Optional[Name] = None
+    crime_type: Optional[Name] = None
+    status: Optional[CriminalStatus] = None
+    alias: Optional[str] = None
+    father_name: Optional[str] = None
+    mother_name: Optional[str] = None
+    date_of_birth: Optional[date] = None
+    nid_or_birth_cert: Optional[str] = None
+    blood_group: Optional[str] = None
+    phone: Optional[str] = None
+    occupation: Optional[str] = None
+    present_address: Optional[str] = None
+    permanent_address: Optional[str] = None
+    height: Optional[str] = None
+    identifying_marks: Optional[str] = None
+    fir_case_number: Optional[str] = None
+    penal_code_sections: Optional[str] = None
+    crime_description: Optional[str] = None
+    incident_date: Optional[date] = None
+    arrest_date: Optional[date] = None
+    arresting_officer: Optional[str] = None
+    repeat_offender: Optional[bool] = None
