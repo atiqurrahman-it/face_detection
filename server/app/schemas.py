@@ -130,3 +130,10 @@ class CriminalOut(BaseModel):
 
     class Config:
         orm_mode = True
+
+
+class CriminalListOut(BaseModel):
+    items: List[CriminalOut]
+    total: int
+    page: int
+    page_size: int

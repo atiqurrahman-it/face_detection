@@ -1,14 +1,16 @@
 from datetime import datetime
+from typing import Optional
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
 from pydantic import ValidationError
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 from starlette import status
 
 from ..database import get_db
 from ..deps import require_roles
-from ..models import Criminal, CriminalPhoto, Role, Station, User
-from ..schemas import CriminalCreate, CriminalOut
+from ..models import Criminal, CriminalPhoto, CriminalStatus, Role, Station, User
+from ..schemas import CriminalCreate, CriminalListOut, CriminalOut
 from ..storage import save_criminal_photo
 from .stations import _station_scope
 
@@ -78,4 +80,50 @@ async def create_criminal(
 
     db.commit()
     db.refresh(criminal)
+    return criminal
+
+
+@router.get("", response_model=CriminalListOut)
+def list_criminals(
+    q: Optional[str] = None,
+    station_id: Optional[int] = None,
+    status_filter: Optional[CriminalStatus] = Query(None, alias="status"),
+    crime_type: Optional[str] = None,
+    page: int = 1,
+    page_size: int = 20,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_roles(Role.SUPER_ADMIN, Role.ADMIN, Role.USER)),
+):
+    query = db.query(Criminal)
+    if q:
+        like = f"%{q}%"
+        query = query.filter(or_(Criminal.full_name.ilike(like), Criminal.nid_or_birth_cert.ilike(like)))
+    if station_id:
+        query = query.filter(Criminal.station_id == station_id)
+    if status_filter:
+        query = query.filter(Criminal.status == status_filter)
+    if crime_type:
+        query = query.filter(Criminal.crime_type.ilike(f"%{crime_type}%"))
+
+    total = query.count()
+    page = max(page, 1)
+    page_size = min(max(page_size, 1), 100)
+    items = (
+        query.order_by(Criminal.created_at.desc())
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+        .all()
+    )
+    return CriminalListOut(items=items, total=total, page=page, page_size=page_size)
+
+
+@router.get("/{criminal_id}", response_model=CriminalOut)
+def get_criminal(
+    criminal_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_roles(Role.SUPER_ADMIN, Role.ADMIN, Role.USER)),
+):
+    criminal = db.query(Criminal).filter(Criminal.id == criminal_id).first()
+    if not criminal:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Criminal not found")
     return criminal
