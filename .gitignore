@@ -3,3 +3,5 @@ server/myenv
 server/.venv
 __pycache__/
 *.pyc
+server/*.db
+server/.env
