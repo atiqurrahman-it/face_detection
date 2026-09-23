@@ -274,3 +274,65 @@ def test_edit_can_replace_front_photo(client, db_session):
     photo_url = response.json()["photos"][0]["url"]
     photo_response = client.get(photo_url)
     assert photo_response.content == b"new-jpeg-bytes"
+
+
+def test_station_admin_can_delete_own_station_criminal(client, db_session):
+    station = _make_station(db_session)
+    _make_user(db_session, "dhk01admin", "adminpass1", Role.ADMIN, station_id=station.id)
+    token = _login(client, "dhk01admin", "adminpass1")
+    created = _create_criminal(client, token, station.id)
+
+    response = client.delete(f"/criminals/{created['id']}", headers=_auth(token))
+
+    assert response.status_code == 204
+
+    follow_up = client.get(f"/criminals/{created['id']}", headers=_auth(token))
+    assert follow_up.status_code == 404
+
+
+def test_station_user_cannot_delete_criminal(client, db_session):
+    station = _make_station(db_session)
+    _make_user(db_session, "officer1", "officerpass1", Role.USER, station_id=station.id)
+    token = _login(client, "officer1", "officerpass1")
+    created = _create_criminal(client, token, station.id)
+
+    response = client.delete(f"/criminals/{created['id']}", headers=_auth(token))
+
+    assert response.status_code == 403
+
+
+def test_admin_cannot_delete_other_station_criminal(client, db_session):
+    station_a = _make_station(db_session, code="DHK-01")
+    station_b = _make_station(db_session, code="DHK-02")
+    _make_user(db_session, "dhk01admin", "adminpass1", Role.ADMIN, station_id=station_a.id)
+    _make_user(db_session, "officer_b", "pass12345", Role.USER, station_id=station_b.id)
+    token_a = _login(client, "dhk01admin", "adminpass1")
+    token_b = _login(client, "officer_b", "pass12345")
+    created = _create_criminal(client, token_b, station_b.id)
+
+    response = client.delete(f"/criminals/{created['id']}", headers=_auth(token_a))
+
+    assert response.status_code == 403
+
+
+def test_super_admin_can_delete_any_criminal(client, db_session):
+    station = _make_station(db_session)
+    _make_user(db_session, "officer1", "officerpass1", Role.USER, station_id=station.id)
+    officer_token = _login(client, "officer1", "officerpass1")
+    created = _create_criminal(client, officer_token, station.id)
+
+    _make_user(db_session, "root", "s3cret", Role.SUPER_ADMIN)
+    root_token = _login(client, "root", "s3cret")
+
+    response = client.delete(f"/criminals/{created['id']}", headers=_auth(root_token))
+
+    assert response.status_code == 204
+
+
+def test_delete_404_for_missing_criminal(client, db_session):
+    _make_user(db_session, "root", "s3cret", Role.SUPER_ADMIN)
+    token = _login(client, "root", "s3cret")
+
+    response = client.delete("/criminals/999", headers=_auth(token))
+
+    assert response.status_code == 404

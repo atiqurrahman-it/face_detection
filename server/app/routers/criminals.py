@@ -83,6 +83,22 @@ async def create_criminal(
     return criminal
 
 
+@router.delete("/{criminal_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_criminal(
+    criminal_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(Role.SUPER_ADMIN, Role.ADMIN)),
+):
+    criminal = db.query(Criminal).filter(Criminal.id == criminal_id).first()
+    if not criminal:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Criminal not found")
+    _station_scope(criminal.station_id, current_user)
+
+    db.delete(criminal)
+    db.commit()
+    return None
+
+
 @router.get("", response_model=CriminalListOut)
 def list_criminals(
     q: Optional[str] = None,
