@@ -25,3 +25,22 @@ class UserOut(BaseModel):
 
     class Config:
         orm_mode = True
+
+
+class StationCreate(BaseModel):
+    name: str
+    district: str
+    code: str
+    admin_name: str
+    admin_username: str
+    admin_password: str
+
+
+class StationOut(BaseModel):
+    id: int
+    name: str
+    district: str
+    code: str
+
+    class Config:
+        orm_mode = True
