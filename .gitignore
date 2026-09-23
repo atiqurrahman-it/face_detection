@@ -5,3 +5,4 @@ __pycache__/
 *.pyc
 server/*.db
 server/.env
+server/uploads/
