@@ -34,3 +34,11 @@ def test_create_and_decode_access_token_round_trips_claims():
 def test_decode_access_token_rejects_garbage_token():
     with pytest.raises(jwt.PyJWTError):
         decode_access_token("not-a-real-token")
+
+
+def test_create_access_token_raises_when_secret_unset_in_production(monkeypatch):
+    monkeypatch.delenv("JWT_SECRET_KEY", raising=False)
+    monkeypatch.setenv("APP_ENV", "production")
+
+    with pytest.raises(RuntimeError):
+        create_access_token({"sub": "1"})

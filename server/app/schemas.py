@@ -1,8 +1,11 @@
 from typing import Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, constr
 
 from .models import Role
+
+Name = constr(min_length=1, strip_whitespace=True)
+Password = constr(min_length=8)
 
 
 class LoginRequest(BaseModel):
@@ -28,12 +31,12 @@ class UserOut(BaseModel):
 
 
 class StationCreate(BaseModel):
-    name: str
-    district: str
-    code: str
-    admin_name: str
-    admin_username: str
-    admin_password: str
+    name: Name
+    district: Name
+    code: Name
+    admin_name: Name
+    admin_username: Name
+    admin_password: Password
 
 
 class StationOut(BaseModel):
@@ -47,7 +50,7 @@ class StationOut(BaseModel):
 
 
 class StationUserCreate(BaseModel):
-    name: str
-    username: str
-    password: str
+    name: Name
+    username: Name
+    password: Password
     role: Role = Role.USER

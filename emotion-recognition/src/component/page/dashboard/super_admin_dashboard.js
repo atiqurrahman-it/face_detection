@@ -12,7 +12,7 @@ const emptyForm = {
 };
 
 export default function SuperAdminDashboard() {
-  const { token } = useAuth();
+  const { token, logout } = useAuth();
   const [stations, setStations] = useState([]);
   const [form, setForm] = useState(emptyForm);
   const [error, setError] = useState(null);
@@ -39,7 +39,12 @@ export default function SuperAdminDashboard() {
 
   return (
     <div className="p-6 space-y-6">
-      <h1 className="text-2xl font-semibold">Super Admin Dashboard</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-semibold">Super Admin Dashboard</h1>
+        <button onClick={logout} className="border rounded px-2 py-1">
+          Log out
+        </button>
+      </div>
 
       <section>
         <h2 className="text-lg font-medium">Stations ({stations.length})</h2>

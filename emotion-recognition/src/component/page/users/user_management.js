@@ -53,7 +53,9 @@ export default function UserManagement() {
         {users.map((u) => (
           <li key={u.id}>
             <span>{u.username}</span> — <span>{u.is_active ? "active" : "inactive"}</span>{" "}
-            {u.is_active && <button onClick={() => handleDeactivate(u.id)}>Deactivate</button>}
+            {u.is_active && u.id !== user.id && (
+              <button onClick={() => handleDeactivate(u.id)}>Deactivate</button>
+            )}
           </li>
         ))}
       </ul>

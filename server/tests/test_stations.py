@@ -88,6 +88,46 @@ def test_duplicate_station_code_returns_400(client, db_session):
     assert response.status_code == 400
 
 
+def test_create_station_rejects_blank_admin_username(client, db_session):
+    _make_user(db_session, "root", "s3cret", Role.SUPER_ADMIN)
+    token = _login(client, "root", "s3cret")
+
+    response = client.post(
+        "/stations",
+        json={
+            "name": "Dhanmondi Thana",
+            "district": "Dhaka",
+            "code": "DHK-01",
+            "admin_name": "A",
+            "admin_username": "",
+            "admin_password": "adminpass1",
+        },
+        headers=_auth(token),
+    )
+
+    assert response.status_code == 422
+
+
+def test_create_station_rejects_short_admin_password(client, db_session):
+    _make_user(db_session, "root", "s3cret", Role.SUPER_ADMIN)
+    token = _login(client, "root", "s3cret")
+
+    response = client.post(
+        "/stations",
+        json={
+            "name": "Dhanmondi Thana",
+            "district": "Dhaka",
+            "code": "DHK-01",
+            "admin_name": "A",
+            "admin_username": "dhk01admin",
+            "admin_password": "short",
+        },
+        headers=_auth(token),
+    )
+
+    assert response.status_code == 422
+
+
 def test_list_stations_requires_super_admin(client, db_session):
     _make_user(db_session, "dhk01admin", "adminpass1", Role.ADMIN)
     token = _login(client, "dhk01admin", "adminpass1")

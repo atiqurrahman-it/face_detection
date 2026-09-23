@@ -2,9 +2,9 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { AuthContext } from "../../../context/AuthContext";
 import SuperAdminDashboard from "./super_admin_dashboard";
 
-function renderWithAuth(ui) {
+function renderWithAuth(ui, { logout = jest.fn() } = {}) {
   return render(
-    <AuthContext.Provider value={{ user: { role: "super_admin" }, token: "abc123", loading: false }}>
+    <AuthContext.Provider value={{ user: { role: "super_admin" }, token: "abc123", loading: false, logout }}>
       {ui}
     </AuthContext.Provider>
   );
@@ -45,4 +45,16 @@ test("submitting the create-station form posts and appends the new station", asy
   fireEvent.click(screen.getByRole("button", { name: /create station/i }));
 
   expect(await screen.findByText("Gulshan Thana")).toBeInTheDocument();
+});
+
+test("clicking log out calls logout", async () => {
+  global.fetch.mockResolvedValueOnce({ ok: true, json: async () => [] });
+  const logout = jest.fn();
+
+  renderWithAuth(<SuperAdminDashboard />, { logout });
+  await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(1));
+
+  fireEvent.click(screen.getByRole("button", { name: /log ?out/i }));
+
+  expect(logout).toHaveBeenCalledTimes(1);
 });

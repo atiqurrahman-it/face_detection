@@ -65,6 +65,8 @@ def create_station_user(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Station not found")
     if payload.role not in (Role.USER, Role.ADMIN):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid role")
+    if payload.role == Role.ADMIN and current_user.role != Role.SUPER_ADMIN:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only a super admin can create an admin")
     if db.query(User).filter(User.username == payload.username).first():
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Username already exists")
 

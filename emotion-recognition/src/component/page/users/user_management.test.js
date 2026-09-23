@@ -2,11 +2,9 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { AuthContext } from "../../../context/AuthContext";
 import UserManagement from "./user_management";
 
-function renderWithAuth(ui) {
+function renderWithAuth(ui, user = { role: "admin", station_id: 1 }) {
   return render(
-    <AuthContext.Provider value={{ user: { role: "admin", station_id: 1 }, token: "abc123", loading: false }}>
-      {ui}
-    </AuthContext.Provider>
+    <AuthContext.Provider value={{ user, token: "abc123", loading: false }}>{ui}</AuthContext.Provider>
   );
 }
 
@@ -53,4 +51,20 @@ test("creating a new station user appends it to the list", async () => {
   fireEvent.click(screen.getByRole("button", { name: /add user/i }));
 
   expect(await screen.findByText("officer2")).toBeInTheDocument();
+});
+
+test("does not show a deactivate button on the current user's own row", async () => {
+  global.fetch.mockResolvedValueOnce({
+    ok: true,
+    json: async () => [
+      { id: 5, name: "Officer One", username: "officer1", role: "user", station_id: 1, is_active: true },
+      { id: 9, name: "Self Admin", username: "selfadmin", role: "admin", station_id: 1, is_active: true },
+    ],
+  });
+
+  renderWithAuth(<UserManagement />, { id: 9, role: "admin", station_id: 1 });
+
+  await screen.findByText("selfadmin");
+
+  expect(screen.getAllByRole("button", { name: /deactivate/i })).toHaveLength(1);
 });
