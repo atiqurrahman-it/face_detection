@@ -48,7 +48,7 @@ def create_station(
 @router.get("", response_model=list[StationOut])
 def list_stations(
     db: Session = Depends(get_db),
-    _: User = Depends(require_roles(Role.SUPER_ADMIN)),
+    _: User = Depends(require_roles(Role.SUPER_ADMIN, Role.ADMIN, Role.USER)),
 ):
     return db.query(Station).all()
 

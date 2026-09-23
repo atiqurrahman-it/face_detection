@@ -1,4 +1,4 @@
-from app.models import Role, User
+from app.models import Role, Station, User
 from app.security import hash_password
 
 
@@ -128,13 +128,23 @@ def test_create_station_rejects_short_admin_password(client, db_session):
     assert response.status_code == 422
 
 
-def test_list_stations_requires_super_admin(client, db_session):
-    _make_user(db_session, "dhk01admin", "adminpass1", Role.ADMIN)
-    token = _login(client, "dhk01admin", "adminpass1")
+def test_any_authenticated_role_can_list_stations(client, db_session):
+    station = _make_station(db_session)
+    _make_user(db_session, "dhk01admin", "adminpass1", Role.ADMIN, station_id=station.id)
+    _make_user(db_session, "officer1", "officerpass1", Role.USER, station_id=station.id)
 
-    response = client.get("/stations", headers=_auth(token))
+    for username, password in (("dhk01admin", "adminpass1"), ("officer1", "officerpass1")):
+        token = _login(client, username, password)
+        response = client.get("/stations", headers=_auth(token))
+        assert response.status_code == 200, f"{username} got {response.status_code}"
 
-    assert response.status_code == 403
+
+def _make_station(db_session, code="DHK-01"):
+    station = Station(name="Dhanmondi Thana", district="Dhaka", code=code)
+    db_session.add(station)
+    db_session.commit()
+    db_session.refresh(station)
+    return station
 
 
 def test_super_admin_lists_all_stations(client, db_session):
