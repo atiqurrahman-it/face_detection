@@ -1,17 +1,32 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import { AuthContext } from "../../../context/AuthContext";
+import { ThemeContext } from "../../../context/ThemeContext";
 import SuperAdminDashboard from "./super_admin_dashboard";
 
-function renderWithAuth(ui, { logout = jest.fn() } = {}) {
+function renderWithAuth(ui) {
   return render(
-    <AuthContext.Provider value={{ user: { role: "super_admin" }, token: "abc123", loading: false, logout }}>
-      {ui}
+    <AuthContext.Provider
+      value={{ user: { role: "super_admin", username: "root" }, token: "abc123", loading: false, logout: jest.fn() }}
+    >
+      <ThemeContext.Provider value={{ theme: "light", toggleTheme: jest.fn() }}>
+        <MemoryRouter>{ui}</MemoryRouter>
+      </ThemeContext.Provider>
     </AuthContext.Provider>
   );
 }
 
 beforeEach(() => {
   global.fetch = jest.fn();
+});
+
+test("renders inside AdminLayout with its sidebar navigation", async () => {
+  global.fetch.mockResolvedValueOnce({ ok: true, json: async () => [] });
+
+  renderWithAuth(<SuperAdminDashboard />);
+
+  expect(screen.getByRole("heading", { name: "Super Admin Dashboard" })).toBeInTheDocument();
+  expect(screen.getByRole("link", { name: /criminal search/i })).toBeInTheDocument();
 });
 
 test("lists existing stations on load", async () => {
@@ -45,16 +60,4 @@ test("submitting the create-station form posts and appends the new station", asy
   fireEvent.click(screen.getByRole("button", { name: /create station/i }));
 
   expect(await screen.findByText("Gulshan Thana")).toBeInTheDocument();
-});
-
-test("clicking log out calls logout", async () => {
-  global.fetch.mockResolvedValueOnce({ ok: true, json: async () => [] });
-  const logout = jest.fn();
-
-  renderWithAuth(<SuperAdminDashboard />, { logout });
-  await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(1));
-
-  fireEvent.click(screen.getByRole("button", { name: /log ?out/i }));
-
-  expect(logout).toHaveBeenCalledTimes(1);
 });
