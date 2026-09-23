@@ -44,3 +44,10 @@ class StationOut(BaseModel):
 
     class Config:
         orm_mode = True
+
+
+class StationUserCreate(BaseModel):
+    name: str
+    username: str
+    password: str
+    role: Role = Role.USER
