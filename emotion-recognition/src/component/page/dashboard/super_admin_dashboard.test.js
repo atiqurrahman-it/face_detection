@@ -72,14 +72,34 @@ test("shows division-wise station and criminal cards", async () => {
 
   renderWithAuth(<SuperAdminDashboard />);
 
-  const dhakaStations = (await screen.findByText("Dhaka · Stations")).parentElement;
-  expect(within(dhakaStations).getByText("2")).toBeInTheDocument();
+  const dhakaCard = (await screen.findByRole("heading", { name: "Dhaka", level: 3 })).closest("div.rounded-2xl");
+  expect(within(dhakaCard).getByText("Stations")).toBeInTheDocument();
+  expect(within(dhakaCard).getByText("2")).toBeInTheDocument();
+  expect(within(dhakaCard).getByText("Criminals")).toBeInTheDocument();
+  expect(within(dhakaCard).getByText("5")).toBeInTheDocument();
 
-  const dhakaCriminals = screen.getByText("Dhaka · Criminals").parentElement;
-  expect(within(dhakaCriminals).getByText("5")).toBeInTheDocument();
+  const ctgCard = screen.getByRole("heading", { name: "Chattogram", level: 3 }).closest("div.rounded-2xl");
+  expect(within(ctgCard).getByText("3")).toBeInTheDocument();
+});
 
-  const ctgCriminals = screen.getByText("Chattogram · Criminals").parentElement;
-  expect(within(ctgCriminals).getByText("3")).toBeInTheDocument();
+test("shows every division, defaulting divisions with no stations to zero", async () => {
+  global.fetch.mockResolvedValueOnce({
+    ok: true,
+    json: async () => ({
+      total_stations: 1,
+      total_criminals: 2,
+      by_division: [{ division: "Dhaka", stations: 1, criminals: 2 }],
+      criminal_trend: [{ period: "2026-09", count: 2 }],
+    }),
+  });
+
+  renderWithAuth(<SuperAdminDashboard />);
+
+  const sylhetCard = (await screen.findByRole("heading", { name: "Sylhet", level: 3 })).closest("div.rounded-2xl");
+  expect(within(sylhetCard).getAllByText("0")).toHaveLength(2);
+
+  expect(screen.getByRole("heading", { name: "Mymensingh", level: 3 })).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "Rangpur", level: 3 })).toBeInTheDocument();
 });
 
 test("shows a fallback message when there are no stations yet", async () => {
