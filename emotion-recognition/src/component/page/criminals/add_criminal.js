@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiFetch } from "../../../api/client";
 import { useAuth } from "../../../context/AuthContext";
+import { BD_DIVISIONS, districtsFor } from "../../../data/bd_geo";
 import { CRIMINAL_STATUSES } from "../../../data/criminal_status";
 import AdminLayout from "../../layout/AdminLayout";
 import Button from "../../common/Button";
@@ -35,6 +36,8 @@ const emptyForm = {
   status: "",
   arresting_officer: "",
   repeat_offender: false,
+  division: "",
+  district: "",
   stationLabel: "",
 };
 
@@ -58,9 +61,17 @@ export default function AddCriminal() {
   const [submitting, setSubmitting] = useState(false);
 
   const stationLabel = (s) => `${s.name} (${s.code})`;
+  const districtOptions = useMemo(() => districtsFor(form.division), [form.division]);
+  const stationOptions = useMemo(
+    () =>
+      stations.filter(
+        (s) => (!form.division || s.division === form.division) && (!form.district || s.district === form.district)
+      ),
+    [stations, form.division, form.district]
+  );
   const stationsByLabel = useMemo(
-    () => Object.fromEntries(stations.map((s) => [stationLabel(s), s.id])),
-    [stations]
+    () => Object.fromEntries(stationOptions.map((s) => [stationLabel(s), s.id])),
+    [stationOptions]
   );
 
   useEffect(() => {
@@ -73,7 +84,12 @@ export default function AddCriminal() {
   function updateField(field) {
     return (e) => {
       const value = e.target.type === "checkbox" ? e.target.checked : e.target.value;
-      setForm((f) => ({ ...f, [field]: value }));
+      setForm((f) => ({
+        ...f,
+        [field]: value,
+        ...(field === "division" ? { district: "", stationLabel: "" } : {}),
+        ...(field === "district" ? { stationLabel: "" } : {}),
+      }));
     };
   }
 
@@ -142,16 +158,40 @@ export default function AddCriminal() {
           <h2 className="mb-4 text-lg font-semibold text-slate-900 dark:text-white">Station &amp; case</h2>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {isSuperAdmin ? (
-              <FormField label="Station" htmlFor="station">
-                <SearchableSelect
-                  id="station"
-                  options={stations.map(stationLabel)}
-                  value={form.stationLabel}
-                  onChange={updateField("stationLabel")}
-                  placeholder="Select station"
-                  className={inputClasses}
-                />
-              </FormField>
+              <>
+                <FormField label="Division" htmlFor="division">
+                  <SearchableSelect
+                    id="division"
+                    options={BD_DIVISIONS.map((d) => d.name)}
+                    value={form.division}
+                    onChange={updateField("division")}
+                    placeholder="Select division"
+                    className={inputClasses}
+                  />
+                </FormField>
+                <FormField label="District" htmlFor="district">
+                  <SearchableSelect
+                    id="district"
+                    options={districtOptions}
+                    value={form.district}
+                    onChange={updateField("district")}
+                    disabled={!form.division}
+                    placeholder="Select district"
+                    className={inputClasses}
+                  />
+                </FormField>
+                <FormField label="Station" htmlFor="station">
+                  <SearchableSelect
+                    id="station"
+                    options={stationOptions.map(stationLabel)}
+                    value={form.stationLabel}
+                    onChange={updateField("stationLabel")}
+                    disabled={!form.district}
+                    placeholder="Select station"
+                    className={inputClasses}
+                  />
+                </FormField>
+              </>
             ) : (
               <p className="self-end text-sm text-slate-500 dark:text-slate-400 sm:col-span-2 lg:col-span-3">
                 This criminal will be added under your station.

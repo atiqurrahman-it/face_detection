@@ -70,12 +70,29 @@ test("renders the sectioned form inside AdminLayout", async () => {
   expect(screen.queryByLabelText("Station")).not.toBeInTheDocument();
 });
 
-test("super admin sees a station picker", async () => {
-  mockCriminalsApi({ stations: [{ id: 1, name: "Dhanmondi Thana", code: "DHK-01" }] });
+test("super admin picks a station via cascading division and district selects", async () => {
+  mockCriminalsApi({
+    stations: [
+      { id: 1, name: "Dhanmondi Thana", division: "Dhaka", district: "Dhaka", code: "DHK-01" },
+      { id: 2, name: "Kotwali Thana", division: "Chattogram", district: "Chattogram", code: "CTG-01" },
+    ],
+  });
 
   renderWithAuth({ role: "super_admin", username: "root", station_id: null });
 
-  expect(await screen.findByLabelText("Station")).toBeInTheDocument();
+  expect(await screen.findByLabelText("Division")).toBeInTheDocument();
+  const stationField = screen.getByLabelText("Station");
+  expect(stationField).toBeDisabled();
+
+  fireEvent.click(screen.getByLabelText("Division"));
+  fireEvent.mouseDown(screen.getByRole("option", { name: "Chattogram" }));
+  fireEvent.click(screen.getByLabelText("District"));
+  fireEvent.mouseDown(screen.getByRole("option", { name: "Chattogram" }));
+
+  expect(stationField).not.toBeDisabled();
+  fireEvent.click(stationField);
+  expect(screen.getByRole("option", { name: "Kotwali Thana (CTG-01)" })).toBeInTheDocument();
+  expect(screen.queryByRole("option", { name: "Dhanmondi Thana (DHK-01)" })).not.toBeInTheDocument();
 });
 
 test("blocks submission without a front photo", async () => {
