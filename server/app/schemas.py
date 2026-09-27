@@ -192,3 +192,21 @@ class CriminalUpdate(BaseModel):
         if v is None:
             raise ValueError("must not be cleared to null")
         return v
+
+
+class DivisionStatOut(BaseModel):
+    division: str
+    stations: int
+    criminals: int
+
+
+class MonthlyTrendOut(BaseModel):
+    period: str
+    count: int
+
+
+class DashboardStatsOut(BaseModel):
+    total_stations: int
+    total_criminals: int
+    by_division: List[DivisionStatOut]
+    criminal_trend: List[MonthlyTrendOut]

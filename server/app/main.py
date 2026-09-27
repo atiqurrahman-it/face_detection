@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from .database import Base, engine
-from .routers import auth, criminals, detection, stations, users
+from .routers import auth, criminals, dashboard, detection, stations, users
 from .storage import UPLOAD_ROOT
 
 Base.metadata.create_all(bind=engine)
@@ -24,6 +24,7 @@ app.include_router(auth.router)
 app.include_router(stations.router)
 app.include_router(users.router)
 app.include_router(criminals.router)
+app.include_router(dashboard.router)
 app.include_router(detection.router)
 
 os.makedirs(UPLOAD_ROOT, exist_ok=True)
