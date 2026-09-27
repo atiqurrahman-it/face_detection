@@ -348,7 +348,7 @@ export default function CriminalSearch() {
 
         <Card>
           <h2 className="mb-4 text-lg font-semibold text-slate-900 dark:text-white">Search by photo</h2>
-          <div className="flex flex-wrap items-start gap-6">
+          <div className="flex flex-wrap items-start justify-between gap-6">
             <div className="w-full max-w-xs">
               <FormField label="Upload a photo" htmlFor="photo_search_upload">
                 <input
