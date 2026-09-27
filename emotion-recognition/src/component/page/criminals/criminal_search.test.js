@@ -122,15 +122,23 @@ test("super admin can filter by station", async () => {
       criminal({ id: 2, full_name: "Gulshan Suspect", station: { id: 2, name: "Gulshan Thana", code: "DHK-02" } }),
     ],
     stations: [
-      { id: 1, name: "Dhanmondi Thana", code: "DHK-01" },
-      { id: 2, name: "Gulshan Thana", code: "DHK-02" },
+      { id: 1, name: "Dhanmondi Thana", division: "Dhaka", district: "Dhaka", code: "DHK-01" },
+      { id: 2, name: "Gulshan Thana", division: "Dhaka", district: "Dhaka", code: "DHK-02" },
     ],
   });
 
   renderWithAuth(<CriminalSearch />, { role: "super_admin", username: "root", station_id: null });
   await screen.findByText("Dhaka Suspect");
 
-  fireEvent.click(screen.getByLabelText("Station"));
+  const stationField = screen.getByLabelText("Station");
+  expect(stationField).toBeDisabled();
+
+  fireEvent.click(screen.getByLabelText("Division"));
+  fireEvent.mouseDown(screen.getByRole("option", { name: "Dhaka" }));
+  fireEvent.click(screen.getByLabelText("District"));
+  fireEvent.mouseDown(screen.getByRole("option", { name: "Dhaka" }));
+
+  fireEvent.click(stationField);
   fireEvent.mouseDown(screen.getByRole("option", { name: "Gulshan Thana (DHK-02)" }));
 
   await waitFor(() => expect(screen.queryByText("Dhaka Suspect")).not.toBeInTheDocument());

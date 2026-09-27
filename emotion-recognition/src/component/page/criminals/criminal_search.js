@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { apiFetch, API_BASE_URL } from "../../../api/client";
 import { useAuth } from "../../../context/AuthContext";
+import { BD_DIVISIONS, districtsFor } from "../../../data/bd_geo";
 import { CRIMINAL_STATUSES } from "../../../data/criminal_status";
 import AdminLayout from "../../layout/AdminLayout";
 import Button from "../../common/Button";
@@ -43,15 +44,25 @@ export default function CriminalSearch() {
   const [filterQ, setFilterQ] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
   const [filterCrimeType, setFilterCrimeType] = useState("");
+  const [filterDivision, setFilterDivision] = useState("");
+  const [filterDistrict, setFilterDistrict] = useState("");
   const [filterStationLabel, setFilterStationLabel] = useState("");
 
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState("20");
 
   const stationLabel = useCallback((s) => `${s.name} (${s.code})`, []);
+  const filterDistrictOptions = useMemo(() => districtsFor(filterDivision), [filterDivision]);
+  const filterStationOptions = useMemo(
+    () =>
+      stations.filter(
+        (s) => (!filterDivision || s.division === filterDivision) && (!filterDistrict || s.district === filterDistrict)
+      ),
+    [stations, filterDivision, filterDistrict]
+  );
   const stationsByLabel = useMemo(
-    () => Object.fromEntries(stations.map((s) => [stationLabel(s), s.id])),
-    [stations, stationLabel]
+    () => Object.fromEntries(filterStationOptions.map((s) => [stationLabel(s), s.id])),
+    [filterStationOptions, stationLabel]
   );
 
   useEffect(() => {
@@ -147,7 +158,7 @@ export default function CriminalSearch() {
 
         <Card>
           <h2 className="mb-4 text-lg font-semibold text-slate-900 dark:text-white">Filters</h2>
-          <div className={`grid gap-4 sm:grid-cols-2 ${isSuperAdmin ? "lg:grid-cols-4" : "lg:grid-cols-3"}`}>
+          <div className={`grid gap-4 sm:grid-cols-2 ${isSuperAdmin ? "lg:grid-cols-6" : "lg:grid-cols-3"}`}>
             <FormField label="Search" htmlFor="filter_q">
               <input
                 id="filter_q"
@@ -191,19 +202,52 @@ export default function CriminalSearch() {
               />
             </FormField>
             {isSuperAdmin && (
-              <FormField label="Station" htmlFor="filter_station">
-                <SearchableSelect
-                  id="filter_station"
-                  options={stations.map(stationLabel)}
-                  value={filterStationLabel}
-                  onChange={(e) => {
-                    setFilterStationLabel(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                  placeholder="All stations"
-                  className={inputClasses}
-                />
-              </FormField>
+              <>
+                <FormField label="Division" htmlFor="filter_division">
+                  <SearchableSelect
+                    id="filter_division"
+                    options={BD_DIVISIONS.map((d) => d.name)}
+                    value={filterDivision}
+                    onChange={(e) => {
+                      setFilterDivision(e.target.value);
+                      setFilterDistrict("");
+                      setFilterStationLabel("");
+                      setCurrentPage(1);
+                    }}
+                    placeholder="All divisions"
+                    className={inputClasses}
+                  />
+                </FormField>
+                <FormField label="District" htmlFor="filter_district">
+                  <SearchableSelect
+                    id="filter_district"
+                    options={filterDistrictOptions}
+                    value={filterDistrict}
+                    onChange={(e) => {
+                      setFilterDistrict(e.target.value);
+                      setFilterStationLabel("");
+                      setCurrentPage(1);
+                    }}
+                    disabled={!filterDivision}
+                    placeholder="All districts"
+                    className={inputClasses}
+                  />
+                </FormField>
+                <FormField label="Station" htmlFor="filter_station">
+                  <SearchableSelect
+                    id="filter_station"
+                    options={filterStationOptions.map(stationLabel)}
+                    value={filterStationLabel}
+                    onChange={(e) => {
+                      setFilterStationLabel(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                    disabled={!filterDistrict}
+                    placeholder="All stations"
+                    className={inputClasses}
+                  />
+                </FormField>
+              </>
             )}
           </div>
         </Card>
