@@ -27,9 +27,13 @@ const ImageInput = () => {
       setFrameSize({ width: pred_log.imageWidth, height: pred_log.imageHeight });
       setFaces(pred_log.faces || []);
       setError(pred_log.error || "");
+      socket.close();
     };
 
-    socket.onerror = (error) => console.error("WebSocket error:", error);
+    socket.onerror = (error) => {
+      console.error("WebSocket error:", error);
+      socket.close();
+    };
   };
 
   const handleFileUpload = (file) => {

@@ -21,8 +21,11 @@ const RealFaceDetection = () => {
   // handshake of latency per detection and made updates feel sluggish.
   useEffect(() => {
     let cancelled = false;
+    let reconnectTimer = null;
 
     const connect = () => {
+      if (cancelled) return;
+
       const socket = new WebSocket(WS_URL);
       socketRef.current = socket;
 
@@ -38,7 +41,7 @@ const RealFaceDetection = () => {
 
       socket.onclose = () => {
         pendingRef.current = false;
-        if (!cancelled) setTimeout(connect, 1000);
+        if (!cancelled) reconnectTimer = setTimeout(connect, 1000);
       };
     };
 
@@ -46,6 +49,7 @@ const RealFaceDetection = () => {
 
     return () => {
       cancelled = true;
+      clearTimeout(reconnectTimer);
       socketRef.current?.close();
     };
   }, []);
