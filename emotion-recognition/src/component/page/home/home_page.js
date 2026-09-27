@@ -66,7 +66,7 @@ const HomePage = () => {
             Facial Recognition for Law Enforcement
           </span>
           <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white sm:text-6xl">
-            <span className="text-emerald-500">ArgusID</span> watches so your
+            <span className="text-emerald-500">CrimTrace</span> watches so your
             station doesn't have to
           </h1>
           <p className="mt-6 max-w-2xl text-lg text-slate-600 dark:text-slate-300">

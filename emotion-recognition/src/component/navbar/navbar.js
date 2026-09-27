@@ -50,7 +50,7 @@ const Nav = () => {
       <div className="mx-auto flex max-w-4xl items-center justify-between gap-2 rounded-2xl border border-slate-200/70 bg-white/90 px-3 py-2 shadow-lg shadow-black/5 backdrop-blur transition-colors dark:border-white/10 dark:bg-slate-900/80">
         <div className="hidden items-center gap-2 pl-2 font-bold text-slate-800 dark:text-white sm:flex">
           <span className="text-xl">🛡️</span>
-          <span>ArgusID</span>
+          <span>CrimTrace</span>
         </div>
 
         <div className="flex flex-1 justify-center gap-1 overflow-x-auto sm:flex-none">

@@ -6,7 +6,7 @@ jest.mock("./component/backgorund/backgorun", () => () => null);
 test("redirects a removed or unknown route to the home page", () => {
   window.history.pushState({}, "", "/face-detection");
   render(<App />);
-  expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("ArgusID");
+  expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("CrimTrace");
   expect(screen.getByRole("link", { name: /sign in to your station/i })).toBeInTheDocument();
 });
 

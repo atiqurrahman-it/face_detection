@@ -36,7 +36,7 @@ export default function LoginPage() {
       <Card className="w-full max-w-sm">
         <div className="mb-6 flex items-center gap-2 text-lg font-bold text-slate-800 dark:text-white">
           <span className="text-2xl">🛡️</span>
-          <span>ArgusID</span>
+          <span>CrimTrace</span>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <FormField label="Username" htmlFor="username">

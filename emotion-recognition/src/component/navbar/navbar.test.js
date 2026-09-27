@@ -13,9 +13,9 @@ function renderNav() {
   );
 }
 
-test("renders the ArgusID wordmark", () => {
+test("renders the CrimTrace wordmark", () => {
   renderNav();
-  expect(screen.getByText("ArgusID")).toBeInTheDocument();
+  expect(screen.getByText("CrimTrace")).toBeInTheDocument();
 });
 
 test("does not render Face Detection or Image Input links", () => {

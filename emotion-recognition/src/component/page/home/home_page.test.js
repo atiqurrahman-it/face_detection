@@ -22,9 +22,9 @@ function renderHomePage(user = null) {
   );
 }
 
-test("renders the ArgusID headline for a signed-out visitor", () => {
+test("renders the CrimTrace headline for a signed-out visitor", () => {
   renderHomePage();
-  expect(screen.getByRole("heading", { level: 1, name: /ArgusID/ })).toBeInTheDocument();
+  expect(screen.getByRole("heading", { level: 1, name: /CrimTrace/ })).toBeInTheDocument();
 });
 
 test("links the primary call to action to sign in", () => {

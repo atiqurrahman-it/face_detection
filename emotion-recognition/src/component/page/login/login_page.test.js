@@ -53,7 +53,7 @@ test("shows an error message on invalid credentials", async () => {
   expect(await screen.findByText(/invalid username or password/i)).toBeInTheDocument();
 });
 
-test("renders the ArgusID wordmark", () => {
+test("renders the CrimTrace wordmark", () => {
   render(
     <AuthProvider>
       <MemoryRouter>
@@ -61,5 +61,5 @@ test("renders the ArgusID wordmark", () => {
       </MemoryRouter>
     </AuthProvider>
   );
-  expect(screen.getByText("ArgusID")).toBeInTheDocument();
+  expect(screen.getByText("CrimTrace")).toBeInTheDocument();
 });
