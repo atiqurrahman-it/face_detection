@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { AuthContext } from "../../../context/AuthContext";
 import { ThemeContext } from "../../../context/ThemeContext";
@@ -62,6 +62,15 @@ function mockCriminalsApi({ criminals = [], stations = [], photoMatches = null }
       const index = items.findIndex((c) => c.id === id);
       if (index !== -1) items.splice(index, 1);
       return { ok: true, json: async () => null };
+    }
+
+    if (method === "PATCH" && parsed.pathname.startsWith("/criminals/")) {
+      const id = Number(parsed.pathname.split("/").pop());
+      const index = items.findIndex((c) => c.id === id);
+      const patch = JSON.parse(options.body.get("payload"));
+      const updated = { ...items[index], ...patch };
+      items[index] = updated;
+      return { ok: true, json: async () => updated };
     }
 
     const query = parsed.searchParams;
@@ -170,15 +179,36 @@ test("super admin can filter by station", async () => {
   expect(screen.getByText("Gulshan Suspect")).toBeInTheDocument();
 });
 
-test("admin can delete a criminal", async () => {
-  mockCriminalsApi({ criminals: [criminal({ full_name: "Jane Roe" })] });
+test("deleting a criminal asks for confirmation before removing it", async () => {
+  mockCriminalsApi({ criminals: [criminal({ full_name: "Jane Roe", criminal_code: "CR-000042" })] });
 
   renderWithAuth(<CriminalSearch />, { role: "admin", username: "dhk01admin", station_id: 1 });
   await screen.findByText("Jane Roe");
 
   fireEvent.click(screen.getByRole("button", { name: /delete jane roe/i }));
 
+  const dialog = screen.getByRole("dialog");
+  expect(within(dialog).getByText(/CR-000042/)).toBeInTheDocument();
+  // Deletion hasn't happened yet — confirming is required.
+  expect(global.fetch.mock.calls.some(([, options]) => options?.method === "DELETE")).toBe(false);
+
+  fireEvent.click(within(dialog).getByRole("button", { name: /^delete$/i }));
+
   await waitFor(() => expect(screen.queryByText("Jane Roe")).not.toBeInTheDocument());
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+});
+
+test("cancelling the delete confirmation keeps the criminal", async () => {
+  mockCriminalsApi({ criminals: [criminal({ full_name: "Jane Roe" })] });
+
+  renderWithAuth(<CriminalSearch />, { role: "admin", username: "dhk01admin", station_id: 1 });
+  await screen.findByText("Jane Roe");
+
+  fireEvent.click(screen.getByRole("button", { name: /delete jane roe/i }));
+  fireEvent.click(screen.getByRole("button", { name: /cancel/i }));
+
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  expect(screen.getByText("Jane Roe")).toBeInTheDocument();
 });
 
 test("a station user cannot delete a criminal", async () => {
@@ -241,4 +271,47 @@ test("capturing a live camera frame searches by photo", async () => {
   fireEvent.click(screen.getByRole("button", { name: /capture & search/i }));
 
   expect(await screen.findByText("Camera Match Suspect")).toBeInTheDocument();
+});
+
+test("viewing a criminal shows their details in a read-only modal", async () => {
+  mockCriminalsApi({
+    criminals: [
+      criminal({
+        full_name: "Jane Roe",
+        alias: "JR",
+        phone: "0123456789",
+        crime_description: "Details of the offence.",
+      }),
+    ],
+  });
+
+  renderWithAuth(<CriminalSearch />, { role: "user", username: "officer1", station_id: 1 });
+  await screen.findByText("Jane Roe");
+
+  fireEvent.click(screen.getByRole("button", { name: /view jane roe/i }));
+
+  const dialog = screen.getByRole("dialog");
+  expect(within(dialog).getByText("Details of the offence.")).toBeInTheDocument();
+  expect(within(dialog).getByText("0123456789")).toBeInTheDocument();
+  expect(within(dialog).queryByRole("button", { name: /save changes/i })).not.toBeInTheDocument();
+});
+
+test("editing a criminal saves changes and updates the list in place", async () => {
+  mockCriminalsApi({
+    criminals: [criminal({ full_name: "Jane Roe", gender: "Female", status: "Wanted" })],
+  });
+
+  renderWithAuth(<CriminalSearch />, { role: "user", username: "officer1", station_id: 1 });
+  await screen.findByText("Jane Roe");
+
+  fireEvent.click(screen.getByRole("button", { name: /edit jane roe/i }));
+  const dialog = screen.getByRole("dialog");
+
+  fireEvent.change(within(dialog).getByLabelText("Full name"), { target: { value: "Jane Doe" } });
+  fireEvent.change(within(dialog).getByLabelText("Status"), { target: { value: "Arrested" } });
+  fireEvent.click(within(dialog).getByRole("button", { name: /save changes/i }));
+
+  await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+  expect(screen.getByText("Jane Doe")).toBeInTheDocument();
+  expect(screen.getByText("Arrested", { selector: "span" })).toBeInTheDocument();
 });

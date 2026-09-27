@@ -10,10 +10,12 @@ import Button from "../../common/Button";
 import Card from "../../common/Card";
 import DataTable from "../../common/DataTable";
 import FormField from "../../common/FormField";
+import Modal from "../../common/Modal";
 import Pagination from "../../common/Pagination";
 import SearchableSelect from "../../common/SearchableSelect";
 import StatusBadge from "../../common/StatusBadge";
-import { TrashIcon, UserCircleIcon } from "../../common/icons";
+import { EyeIcon, PencilIcon, TrashIcon, UserCircleIcon } from "../../common/icons";
+import { EditCriminalModal, ViewCriminalModal } from "./criminal_modals";
 
 const inputClasses =
   "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-slate-600 dark:bg-slate-800 dark:text-white";
@@ -52,6 +54,10 @@ export default function CriminalSearch() {
   const [criminals, setCriminals] = useState([]);
   const [listMeta, setListMeta] = useState({ total: 0, page: 1, page_size: 20 });
   const [error, setError] = useState(null);
+  const [pendingDelete, setPendingDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+  const [viewCriminal, setViewCriminal] = useState(null);
+  const [editCriminal, setEditCriminal] = useState(null);
 
   const [stations, setStations] = useState([]);
   const [filterQ, setFilterQ] = useState("");
@@ -120,8 +126,11 @@ export default function CriminalSearch() {
     fetchCriminals();
   }, [fetchCriminals]);
 
-  async function handleDelete(id) {
+  async function confirmDelete() {
+    if (!pendingDelete) return;
+    const id = pendingDelete.id;
     setError(null);
+    setDeleting(true);
     try {
       await apiFetch(`/criminals/${id}`, { method: "DELETE", token });
       if (photoSearchResults !== null) {
@@ -129,8 +138,11 @@ export default function CriminalSearch() {
       } else {
         fetchCriminals();
       }
+      setPendingDelete(null);
     } catch (err) {
       setError(err.message);
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -167,6 +179,12 @@ export default function CriminalSearch() {
     setFileInputKey((k) => k + 1);
   }
 
+  function handleCriminalSaved(updated) {
+    setCriminals((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
+    setPhotoSearchResults((prev) => (prev ? prev.map((c) => (c.id === updated.id ? updated : c)) : prev));
+    setEditCriminal(null);
+  }
+
   const totalPages = Math.max(1, Math.ceil(listMeta.total / Number(listMeta.page_size || pageSize)));
   const isPhotoSearchActive = photoSearchResults !== null;
   const displayedCriminals = isPhotoSearchActive ? photoSearchResults : criminals;
@@ -199,24 +217,40 @@ export default function CriminalSearch() {
           },
         ]
       : []),
-    ...(canDelete
-      ? [
-          {
-            key: "actions",
-            header: "",
-            render: (row) => (
-              <button
-                type="button"
-                aria-label={`Delete ${row.full_name}`}
-                onClick={() => handleDelete(row.id)}
-                className="flex h-8 w-8 items-center justify-center rounded-lg text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10"
-              >
-                <TrashIcon className="h-4 w-4" />
-              </button>
-            ),
-          },
-        ]
-      : []),
+    {
+      key: "actions",
+      header: "",
+      render: (row) => (
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            aria-label={`View ${row.full_name}`}
+            onClick={() => setViewCriminal(row)}
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+          >
+            <EyeIcon className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            aria-label={`Edit ${row.full_name}`}
+            onClick={() => setEditCriminal(row)}
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+          >
+            <PencilIcon className="h-4 w-4" />
+          </button>
+          {canDelete && (
+            <button
+              type="button"
+              aria-label={`Delete ${row.full_name}`}
+              onClick={() => setPendingDelete(row)}
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10"
+            >
+              <TrashIcon className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+      ),
+    },
   ];
 
   return (
@@ -410,6 +444,39 @@ export default function CriminalSearch() {
           )}
         </Card>
       </div>
+
+      <Modal open={!!pendingDelete} onClose={() => setPendingDelete(null)} title="Delete criminal record">
+        <p className="text-sm text-slate-600 dark:text-slate-300">
+          Are you sure you want to delete{" "}
+          <span className="font-medium text-slate-900 dark:text-white">{pendingDelete?.full_name}</span> (
+          {pendingDelete?.criminal_code})? This cannot be undone.
+        </p>
+        {error && (
+          <p role="alert" className="mt-3 text-sm text-red-600 dark:text-red-400">
+            {error}
+          </p>
+        )}
+        <div className="mt-6 flex justify-end gap-3">
+          <Button type="button" variant="secondary" onClick={() => setPendingDelete(null)} disabled={deleting}>
+            Cancel
+          </Button>
+          <Button type="button" variant="danger" onClick={confirmDelete} disabled={deleting}>
+            {deleting ? "Deleting…" : "Delete"}
+          </Button>
+        </div>
+      </Modal>
+
+      <ViewCriminalModal criminal={viewCriminal} onClose={() => setViewCriminal(null)} />
+
+      {editCriminal && (
+        <EditCriminalModal
+          key={editCriminal.id}
+          criminal={editCriminal}
+          token={token}
+          onClose={() => setEditCriminal(null)}
+          onSaved={handleCriminalSaved}
+        />
+      )}
     </AdminLayout>
   );
 }
