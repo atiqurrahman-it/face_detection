@@ -102,12 +102,34 @@ test("shows every division, defaulting divisions with no stations to zero", asyn
   expect(screen.getByRole("heading", { name: "Rangpur", level: 3 })).toBeInTheDocument();
 });
 
-test("shows a fallback message when there are no stations yet", async () => {
+test("shows a fallback message in the pie chart when there are no criminals yet", async () => {
   global.fetch.mockResolvedValueOnce({ ok: true, json: async () => emptyStats });
 
   renderWithAuth(<SuperAdminDashboard />);
 
-  expect(await screen.findByText(/no stations yet/i)).toBeInTheDocument();
+  expect(await screen.findByText(/no data yet/i)).toBeInTheDocument();
+});
+
+test("shows the criminals-by-division pie chart with a slice per division", async () => {
+  global.fetch.mockResolvedValueOnce({
+    ok: true,
+    json: async () => ({
+      total_stations: 3,
+      total_criminals: 8,
+      by_division: [
+        { division: "Dhaka", stations: 2, criminals: 5 },
+        { division: "Chattogram", stations: 1, criminals: 3 },
+      ],
+      criminal_trend: [{ period: "2026-09", count: 8 }],
+    }),
+  });
+
+  renderWithAuth(<SuperAdminDashboard />);
+
+  const pieHeading = await screen.findByRole("heading", { name: "Criminals by division" });
+  const pieCard = pieHeading.closest("div.rounded-2xl");
+  expect(within(pieCard).getByRole("img", { name: /Dhaka: 5/i })).toBeInTheDocument();
+  expect(within(pieCard).getByRole("img", { name: /Chattogram: 3/i })).toBeInTheDocument();
 });
 
 test("sidebar links to the Create Station page instead of an inline form", async () => {

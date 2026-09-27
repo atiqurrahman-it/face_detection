@@ -3,13 +3,25 @@ import { apiFetch } from "../../../api/client";
 import { useAuth } from "../../../context/AuthContext";
 import AdminLayout from "../../layout/AdminLayout";
 import BarChart from "../../common/BarChart";
+import PieChart from "../../common/PieChart";
 import Card from "../../common/Card";
 import { BuildingOfficeIcon, UsersIcon } from "../../common/icons";
 import { BD_DIVISIONS } from "../../../data/bd_geo";
 
-const STATION_SERIES = { key: "stations", label: "Stations", light: "#2a78d6", dark: "#3987e5" };
-const CRIMINAL_SERIES = { key: "criminals", label: "Criminals", light: "#eb6834", dark: "#d95926" };
 const TREND_SERIES = { key: "count", label: "Criminals added", light: "#2a78d6", dark: "#3987e5" };
+
+// Fixed per-division colors (the validated 8-hue categorical order) so a
+// division always keeps the same color regardless of which ones have data.
+const DIVISION_COLORS = {
+  Dhaka: { light: "#2a78d6", dark: "#3987e5" },
+  Chattogram: { light: "#eb6834", dark: "#d95926" },
+  Rajshahi: { light: "#1baf7a", dark: "#199e70" },
+  Khulna: { light: "#eda100", dark: "#c98500" },
+  Barishal: { light: "#e87ba4", dark: "#d55181" },
+  Sylhet: { light: "#008300", dark: "#008300" },
+  Rangpur: { light: "#4a3aa7", dark: "#9085e9" },
+  Mymensingh: { light: "#e34948", dark: "#e66767" },
+};
 
 function formatMonth(period) {
   const [year, month] = period.split("-").map(Number);
@@ -62,13 +74,18 @@ export default function SuperAdminDashboard() {
       .catch((err) => setError(err.message));
   }, [token]);
 
-  const byDivision = stats?.by_division.map((row) => ({ label: row.division, values: row })) ?? [];
   const trend = stats?.criminal_trend.map((row) => ({ label: formatMonth(row.period), values: row })) ?? [];
 
   const statsByDivisionName = new Map((stats?.by_division ?? []).map((row) => [row.division, row]));
   const allDivisions = BD_DIVISIONS.map(
     (d) => statsByDivisionName.get(d.name) ?? { division: d.name, stations: 0, criminals: 0 }
   );
+  const criminalSlices = allDivisions.map((row) => ({
+    key: row.division,
+    label: row.division,
+    value: row.criminals,
+    ...DIVISION_COLORS[row.division],
+  }));
 
   return (
     <AdminLayout title="Super Admin Dashboard">
@@ -108,12 +125,8 @@ export default function SuperAdminDashboard() {
 
         <div className="grid gap-6 lg:grid-cols-2">
           <Card>
-            <h2 className="mb-4 text-lg font-semibold text-slate-900 dark:text-white">Stations &amp; criminals by division</h2>
-            {byDivision.length > 0 ? (
-              <BarChart data={byDivision} series={[STATION_SERIES, CRIMINAL_SERIES]} />
-            ) : (
-              <p className="text-sm text-slate-500 dark:text-slate-400">No stations yet.</p>
-            )}
+            <h2 className="mb-4 text-lg font-semibold text-slate-900 dark:text-white">Criminals by division</h2>
+            <PieChart slices={criminalSlices} />
           </Card>
 
           <Card>
