@@ -9,6 +9,7 @@ import AdminLayout from "../../layout/AdminLayout";
 import Button from "../../common/Button";
 import Card from "../../common/Card";
 import DataTable from "../../common/DataTable";
+import FaceOverlay from "../../common/FaceOverlay";
 import FormField from "../../common/FormField";
 import Modal from "../../common/Modal";
 import Pagination from "../../common/Pagination";
@@ -22,6 +23,10 @@ const inputClasses =
 
 const fileInputClasses =
   "block w-full text-sm text-slate-600 file:mr-4 file:rounded-lg file:border-0 file:bg-emerald-500 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-emerald-600 dark:text-slate-300";
+
+const DETECTION_WS_URL = "ws://localhost:8000";
+const DETECT_INTERVAL_MS = 400;
+const AUTO_SEARCH_COOLDOWN_MS = 3000;
 
 function dataUrlToBlob(dataUrl) {
   const [header, base64] = dataUrl.split(",");
@@ -75,7 +80,13 @@ export default function CriminalSearch() {
   const [photoSearchLoading, setPhotoSearchLoading] = useState(false);
   const [showCamera, setShowCamera] = useState(false);
   const [fileInputKey, setFileInputKey] = useState(0);
+  const [overlayFaces, setOverlayFaces] = useState([]);
+  const [frameSize, setFrameSize] = useState({ width: 0, height: 0 });
   const webcamRef = useRef(null);
+  const socketRef = useRef(null);
+  const pendingFrameRef = useRef(false);
+  const photoSearchLoadingRef = useRef(false);
+  const lastAutoSearchRef = useRef(0);
 
   const stationLabel = useCallback((s) => `${s.name} (${s.code})`, []);
   const filterDistrictOptions = useMemo(() => districtsFor(filterDivision), [filterDivision]);
@@ -147,6 +158,7 @@ export default function CriminalSearch() {
   }
 
   async function searchByPhoto(blob) {
+    photoSearchLoadingRef.current = true;
     setPhotoSearchError(null);
     setPhotoSearchLoading(true);
     try {
@@ -157,6 +169,7 @@ export default function CriminalSearch() {
     } catch (err) {
       setPhotoSearchError(err.message);
     } finally {
+      photoSearchLoadingRef.current = false;
       setPhotoSearchLoading(false);
     }
   }
@@ -166,7 +179,7 @@ export default function CriminalSearch() {
     if (file) searchByPhoto(file);
   }
 
-  function handleCapture() {
+  function captureAndSearch() {
     const imageSrc = webcamRef.current?.getScreenshot();
     if (!imageSrc) return;
     searchByPhoto(dataUrlToBlob(imageSrc));
@@ -178,6 +191,77 @@ export default function CriminalSearch() {
     setShowCamera(false);
     setFileInputKey((k) => k + 1);
   }
+
+  // Live face-detection overlay for the camera panel, reusing the same
+  // Haar-cascade WebSocket the emotion-detection page uses (fast per-frame
+  // boxes). Once a face is seen, it auto-triggers the heavier photo search
+  // (dlib face embedding) on a cooldown so it isn't fired on every frame.
+  useEffect(() => {
+    if (!showCamera) return;
+    let cancelled = false;
+
+    const connect = () => {
+      const socket = new WebSocket(DETECTION_WS_URL);
+      socketRef.current = socket;
+
+      socket.onmessage = (event) => {
+        pendingFrameRef.current = false;
+        const data = JSON.parse(event.data);
+        setFrameSize({ width: data.imageWidth, height: data.imageHeight });
+        const detectedFaces = (data.faces || []).map((f) => ({ ...f, emotion: "Face" }));
+        setOverlayFaces(detectedFaces);
+
+        if (detectedFaces.length > 0) {
+          const now = Date.now();
+          if (!photoSearchLoadingRef.current && now - lastAutoSearchRef.current > AUTO_SEARCH_COOLDOWN_MS) {
+            lastAutoSearchRef.current = now;
+            captureAndSearch();
+          }
+        }
+      };
+
+      socket.onerror = (err) => console.error("Face detection WebSocket error:", err);
+      socket.onclose = () => {
+        pendingFrameRef.current = false;
+        if (!cancelled) setTimeout(connect, 1000);
+      };
+    };
+
+    connect();
+
+    return () => {
+      cancelled = true;
+      socketRef.current?.close();
+      socketRef.current = null;
+      setOverlayFaces([]);
+      setFrameSize({ width: 0, height: 0 });
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showCamera]);
+
+  useEffect(() => {
+    if (!showCamera) return;
+
+    const sendFrame = () => {
+      const socket = socketRef.current;
+      if (
+        pendingFrameRef.current ||
+        !socket ||
+        socket.readyState !== WebSocket.OPEN ||
+        !webcamRef.current ||
+        webcamRef.current.video.readyState !== 4
+      ) {
+        return;
+      }
+      const imageSrc = webcamRef.current.getScreenshot();
+      if (!imageSrc) return;
+      pendingFrameRef.current = true;
+      socket.send(JSON.stringify({ event: "localhost:subscribe", data: { image: imageSrc } }));
+    };
+
+    const interval = setInterval(sendFrame, DETECT_INTERVAL_MS);
+    return () => clearInterval(interval);
+  }, [showCamera]);
 
   function handleCriminalSaved(updated) {
     setCriminals((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
@@ -283,14 +367,23 @@ export default function CriminalSearch() {
               </Button>
               {showCamera && (
                 <div className="space-y-2">
-                  <Webcam
-                    ref={webcamRef}
-                    screenshotFormat="image/jpeg"
-                    className="w-64 rounded-lg border border-slate-300 dark:border-slate-600"
-                  />
-                  <Button type="button" onClick={handleCapture} disabled={photoSearchLoading}>
-                    Capture &amp; search
-                  </Button>
+                  <div className="relative w-64 overflow-hidden rounded-lg border border-slate-300 bg-slate-900 dark:border-slate-600">
+                    <Webcam ref={webcamRef} screenshotFormat="image/jpeg" className="w-64" />
+                    <FaceOverlay faces={overlayFaces} sourceWidth={frameSize.width} sourceHeight={frameSize.height} />
+                  </div>
+                  <p
+                    className={`text-xs font-medium ${
+                      overlayFaces.length > 0
+                        ? "text-emerald-600 dark:text-emerald-400"
+                        : "text-slate-500 dark:text-slate-400"
+                    }`}
+                  >
+                    {photoSearchLoading
+                      ? "Searching…"
+                      : overlayFaces.length > 0
+                      ? "Face detected — searching automatically…"
+                      : "Point a face at the camera to search automatically."}
+                  </p>
                 </div>
               )}
             </div>

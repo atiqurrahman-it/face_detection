@@ -11,8 +11,47 @@ jest.mock("react-webcam", () => {
   return React.forwardRef((props, ref) => {
     React.useImperativeHandle(ref, () => ({
       getScreenshot: () => "data:image/jpeg;base64,ZmFrZQ==",
+      video: { readyState: 4 },
     }));
     return React.createElement("video", { "data-testid": "mock-webcam" });
+  });
+});
+
+// A controllable fake WebSocket so tests can simulate the face-detection
+// backend pushing a "face detected" message without a real server.
+class FakeWebSocket {
+  constructor(url) {
+    this.url = url;
+    this.readyState = FakeWebSocket.OPEN;
+    this.sent = [];
+    FakeWebSocket.instances.push(this);
+  }
+
+  send(data) {
+    this.sent.push(data);
+  }
+
+  close() {
+    this.readyState = FakeWebSocket.CLOSED;
+  }
+}
+FakeWebSocket.OPEN = 1;
+FakeWebSocket.CLOSED = 3;
+FakeWebSocket.instances = [];
+
+function latestSocket() {
+  return FakeWebSocket.instances[FakeWebSocket.instances.length - 1];
+}
+
+// jsdom doesn't implement canvas rendering; FaceOverlay just needs a context
+// object it can call drawing methods on without throwing.
+beforeAll(() => {
+  window.HTMLCanvasElement.prototype.getContext = () => ({
+    clearRect: jest.fn(),
+    strokeRect: jest.fn(),
+    fillRect: jest.fn(),
+    fillText: jest.fn(),
+    measureText: () => ({ width: 0 }),
   });
 });
 
@@ -109,6 +148,8 @@ function criminal(overrides) {
 
 beforeEach(() => {
   global.fetch = jest.fn();
+  FakeWebSocket.instances = [];
+  global.WebSocket = FakeWebSocket;
 });
 
 function jpegFile(name = "search.jpg") {
@@ -255,7 +296,7 @@ test("shows an error when no face is detected, and clearing the photo search res
   expect(await screen.findByText("Regular List Suspect")).toBeInTheDocument();
 });
 
-test("capturing a live camera frame searches by photo", async () => {
+test("live camera auto-searches as soon as a face is detected, with no manual button", async () => {
   mockCriminalsApi({
     criminals: [criminal({ id: 1, full_name: "Regular List Suspect" })],
     photoMatches: [criminal({ id: 2, full_name: "Camera Match Suspect", confidence: 88, distance: 0.3 })],
@@ -264,13 +305,51 @@ test("capturing a live camera frame searches by photo", async () => {
   renderWithAuth(<CriminalSearch />, { role: "user", username: "officer1", station_id: 1 });
   await screen.findByText("Regular List Suspect");
 
-  expect(screen.queryByRole("button", { name: /capture & search/i })).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: /capture.*search/i })).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: /use live camera/i }));
 
   expect(screen.getByTestId("mock-webcam")).toBeInTheDocument();
-  fireEvent.click(screen.getByRole("button", { name: /capture & search/i }));
+  expect(screen.getByText(/point a face at the camera/i)).toBeInTheDocument();
+
+  const socket = latestSocket();
+  socket.onmessage({
+    data: JSON.stringify({
+      faces: [{ box: { x: 0, y: 0, w: 100, h: 100 } }],
+      imageWidth: 640,
+      imageHeight: 480,
+    }),
+  });
 
   expect(await screen.findByText("Camera Match Suspect")).toBeInTheDocument();
+  expect(screen.getByText(/searching automatically/i)).toBeInTheDocument();
+});
+
+test("the live-camera auto-search respects a cooldown between attempts", async () => {
+  mockCriminalsApi({
+    criminals: [criminal({ id: 1, full_name: "Regular List Suspect" })],
+    photoMatches: [criminal({ id: 2, full_name: "Camera Match Suspect", confidence: 88, distance: 0.3 })],
+  });
+
+  renderWithAuth(<CriminalSearch />, { role: "user", username: "officer1", station_id: 1 });
+  await screen.findByText("Regular List Suspect");
+
+  fireEvent.click(screen.getByRole("button", { name: /use live camera/i }));
+  const socket = latestSocket();
+  const faceMessage = {
+    data: JSON.stringify({ faces: [{ box: { x: 0, y: 0, w: 100, h: 100 } }], imageWidth: 640, imageHeight: 480 }),
+  };
+
+  socket.onmessage(faceMessage);
+  await screen.findByText("Camera Match Suspect");
+
+  const searchCallsAfterFirst = global.fetch.mock.calls.filter(([url]) => url.includes("search-by-photo")).length;
+  socket.onmessage(faceMessage);
+  socket.onmessage(faceMessage);
+
+  await waitFor(() => {
+    const searchCallsNow = global.fetch.mock.calls.filter(([url]) => url.includes("search-by-photo")).length;
+    expect(searchCallsNow).toBe(searchCallsAfterFirst);
+  });
 });
 
 test("viewing a criminal shows their details in a read-only modal", async () => {
