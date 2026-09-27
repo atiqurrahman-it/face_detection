@@ -67,6 +67,11 @@ test("cancelling the log out confirmation does not call logout", () => {
   expect(logout).not.toHaveBeenCalled();
 });
 
+test("renders the ArgusID wordmark in the sidebar", () => {
+  renderLayout({ id: 1, role: "user", username: "officer1", station_id: 1 });
+  expect(screen.getByText("ArgusID")).toBeInTheDocument();
+});
+
 test("renders the page title and children", () => {
   renderLayout({ id: 1, role: "user", username: "officer1", station_id: 1 });
 

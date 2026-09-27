@@ -43,7 +43,7 @@ export default function AdminLayout({ title, children }) {
       <aside className="thin-scrollbar hidden w-64 shrink-0 flex-col overflow-y-auto border-r border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900 sm:flex">
         <div className="mb-6 flex items-center gap-2 px-2 font-bold text-slate-800 dark:text-white">
           <span className="text-xl">🛡️</span>
-          <span>Criminal Records</span>
+          <span>ArgusID</span>
         </div>
         <nav className="flex-1 space-y-1">
           {items.map(({ to, label, icon: Icon }) => (
