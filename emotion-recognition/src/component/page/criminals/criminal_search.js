@@ -303,7 +303,7 @@ export default function CriminalSearch() {
       : []),
     {
       key: "actions",
-      header: "",
+      header: "Action",
       render: (row) => (
         <div className="flex items-center gap-1">
           <button

@@ -4,11 +4,11 @@ import { apiFetch } from "../../../api/client";
 import { useAuth } from "../../../context/AuthContext";
 import { BD_DIVISIONS, districtsFor } from "../../../data/bd_geo";
 import { CRIMINAL_STATUSES } from "../../../data/criminal_status";
-import AdminLayout from "../../layout/AdminLayout";
 import Button from "../../common/Button";
 import Card from "../../common/Card";
 import FormField from "../../common/FormField";
 import SearchableSelect from "../../common/SearchableSelect";
+import AdminLayout from "../../layout/AdminLayout";
 
 const GENDER_OPTIONS = ["Male", "Female", "Other"];
 
@@ -230,15 +230,6 @@ export default function AddCriminal() {
             <FormField label="Arresting officer" htmlFor="arresting_officer">
               <input id="arresting_officer" value={form.arresting_officer} onChange={updateField("arresting_officer")} className={inputClasses} />
             </FormField>
-            <label className="flex items-center gap-2 self-end pb-2 text-sm text-slate-700 dark:text-slate-300">
-              <input
-                type="checkbox"
-                checked={form.repeat_offender}
-                onChange={updateField("repeat_offender")}
-                className="h-4 w-4 rounded border-slate-300 text-emerald-500 focus:ring-emerald-500"
-              />
-              Repeat offender
-            </label>
             <FormField label="Crime description" htmlFor="crime_description">
               <textarea
                 id="crime_description"
@@ -248,6 +239,15 @@ export default function AddCriminal() {
                 className={`${inputClasses} sm:col-span-2 lg:col-span-3`}
               />
             </FormField>
+            <label className="flex items-center gap-2 self-end pb-2 text-sm text-slate-700 dark:text-slate-300">
+              <input
+                type="checkbox"
+                checked={form.repeat_offender}
+                onChange={updateField("repeat_offender")}
+                className="h-4 w-4 rounded border-slate-300 text-emerald-500 focus:ring-emerald-500"
+              />
+              Repeat offender
+            </label>
           </div>
         </Card>
 
