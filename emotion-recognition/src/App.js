@@ -4,6 +4,7 @@ import RealFaceDetection from "./component/page/face_detection/face_detection";
 import ImageInput from "./component/page/image_input/image_input";
 import LoginPage from "./component/page/login/login_page";
 import SuperAdminDashboard from "./component/page/dashboard/super_admin_dashboard";
+import CreateStation from "./component/page/stations/create_station";
 import StationDashboard from "./component/page/dashboard/station_dashboard";
 import UserManagement from "./component/page/users/user_management";
 import ProtectedRoute from "./component/routing/ProtectedRoute";
@@ -26,6 +27,15 @@ function App() {
               element={
                 <ProtectedRoute roles={["super_admin"]}>
                   <SuperAdminDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              exact
+              path="/stations/new"
+              element={
+                <ProtectedRoute roles={["super_admin"]}>
+                  <CreateStation />
                 </ProtectedRoute>
               }
             />

@@ -14,6 +14,7 @@ import {
 const NAV_ITEMS = [
   { to: "/admin", label: "Dashboard", icon: DashboardIcon, roles: ["super_admin"] },
   { to: "/dashboard", label: "Dashboard", icon: DashboardIcon, roles: ["admin", "user"] },
+  { to: "/stations/new", label: "Create Station", icon: PlusIcon, roles: ["super_admin"] },
   { to: "/criminals", label: "Criminal Search", icon: SearchIcon, roles: ["super_admin", "admin", "user"] },
   { to: "/criminals/new", label: "Add Criminal", icon: PlusIcon, roles: ["super_admin", "admin", "user"] },
   { to: "/users", label: "User Management", icon: UsersIcon, roles: ["admin"] },
