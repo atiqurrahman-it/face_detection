@@ -21,15 +21,31 @@ function renderFunGame() {
   );
 }
 
-test("shows the live webcam panel by default", () => {
+test("shows the landing hero by default, not either panel", () => {
   renderFunGame();
+  expect(screen.getByRole("heading", { name: /welcome to emotion detection/i })).toBeInTheDocument();
+  expect(screen.queryByText("webcam-panel")).not.toBeInTheDocument();
+  expect(screen.queryByText("upload-panel")).not.toBeInTheDocument();
+});
+
+test("clicking Try Live Detection shows the webcam panel", () => {
+  renderFunGame();
+  fireEvent.click(screen.getByRole("button", { name: /try live detection/i }));
   expect(screen.getByText("webcam-panel")).toBeInTheDocument();
   expect(screen.queryByText("upload-panel")).not.toBeInTheDocument();
 });
 
-test("switches to the image upload panel on click, unmounting the webcam panel", () => {
+test("clicking Upload an Image shows the upload panel", () => {
   renderFunGame();
-  fireEvent.click(screen.getByRole("button", { name: /image upload/i }));
+  fireEvent.click(screen.getByRole("button", { name: /upload an image/i }));
   expect(screen.getByText("upload-panel")).toBeInTheDocument();
+  expect(screen.queryByText("webcam-panel")).not.toBeInTheDocument();
+});
+
+test("Back returns from a panel to the landing hero", () => {
+  renderFunGame();
+  fireEvent.click(screen.getByRole("button", { name: /try live detection/i }));
+  fireEvent.click(screen.getByRole("button", { name: /back/i }));
+  expect(screen.getByRole("heading", { name: /welcome to emotion detection/i })).toBeInTheDocument();
   expect(screen.queryByText("webcam-panel")).not.toBeInTheDocument();
 });
