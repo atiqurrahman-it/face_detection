@@ -106,19 +106,21 @@ export default function SuperAdminDashboard() {
           </div>
         </div>
 
-        <Card>
-          <h2 className="mb-4 text-lg font-semibold text-slate-900 dark:text-white">Stations &amp; criminals by division</h2>
-          {byDivision.length > 0 ? (
-            <BarChart data={byDivision} series={[STATION_SERIES, CRIMINAL_SERIES]} />
-          ) : (
-            <p className="text-sm text-slate-500 dark:text-slate-400">No stations yet.</p>
-          )}
-        </Card>
+        <div className="grid gap-6 lg:grid-cols-2">
+          <Card>
+            <h2 className="mb-4 text-lg font-semibold text-slate-900 dark:text-white">Stations &amp; criminals by division</h2>
+            {byDivision.length > 0 ? (
+              <BarChart data={byDivision} series={[STATION_SERIES, CRIMINAL_SERIES]} />
+            ) : (
+              <p className="text-sm text-slate-500 dark:text-slate-400">No stations yet.</p>
+            )}
+          </Card>
 
-        <Card>
-          <h2 className="mb-4 text-lg font-semibold text-slate-900 dark:text-white">Criminals added (last 6 months)</h2>
-          <BarChart data={trend} series={[TREND_SERIES]} />
-        </Card>
+          <Card>
+            <h2 className="mb-4 text-lg font-semibold text-slate-900 dark:text-white">Criminals added (last 6 months)</h2>
+            <BarChart data={trend} series={[TREND_SERIES]} />
+          </Card>
+        </div>
       </div>
     </AdminLayout>
   );

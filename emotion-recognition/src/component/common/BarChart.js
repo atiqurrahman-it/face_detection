@@ -195,30 +195,6 @@ export default function BarChart({ data, series, height = 240, formatValue = (v)
           ))}
         </div>
       )}
-
-      <table className="sr-only">
-        <caption>Chart data</caption>
-        <thead>
-          <tr>
-            <th scope="col">Category</th>
-            {series.map((s) => (
-              <th scope="col" key={s.key}>
-                {s.label}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {data.map((d) => (
-            <tr key={d.label}>
-              <th scope="row">{d.label}</th>
-              {series.map((s) => (
-                <td key={s.key}>{d.values[s.key] ?? 0}</td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
     </div>
   );
 }
