@@ -24,8 +24,8 @@ test("submitting valid credentials logs the user in", async () => {
     </AuthProvider>
   );
 
-  fireEvent.change(screen.getByLabelText(/username/i), { target: { value: "root" } });
-  fireEvent.change(screen.getByLabelText(/password/i), { target: { value: "s3cret" } });
+  fireEvent.change(screen.getByLabelText("Username"), { target: { value: "root" } });
+  fireEvent.change(screen.getByLabelText("Password"), { target: { value: "s3cret" } });
   fireEvent.click(screen.getByRole("button", { name: /log in/i }));
 
   await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(2));
@@ -46,8 +46,8 @@ test("shows an error message on invalid credentials", async () => {
     </AuthProvider>
   );
 
-  fireEvent.change(screen.getByLabelText(/username/i), { target: { value: "root" } });
-  fireEvent.change(screen.getByLabelText(/password/i), { target: { value: "wrong" } });
+  fireEvent.change(screen.getByLabelText("Username"), { target: { value: "root" } });
+  fireEvent.change(screen.getByLabelText("Password"), { target: { value: "wrong" } });
   fireEvent.click(screen.getByRole("button", { name: /log in/i }));
 
   expect(await screen.findByText(/invalid username or password/i)).toBeInTheDocument();

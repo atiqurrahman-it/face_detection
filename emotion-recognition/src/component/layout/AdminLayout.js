@@ -32,8 +32,8 @@ export default function AdminLayout({ title, children }) {
   const items = NAV_ITEMS.filter((item) => item.roles.includes(user.role));
 
   return (
-    <div className="flex min-h-screen bg-slate-50 dark:bg-slate-950">
-      <aside className="hidden w-64 shrink-0 border-r border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900 sm:block">
+    <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-slate-950">
+      <aside className="hidden w-64 shrink-0 overflow-y-auto border-r border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900 sm:block">
         <div className="mb-6 flex items-center gap-2 px-2 font-bold text-slate-800 dark:text-white">
           <span className="text-xl">🛡️</span>
           <span>Criminal Records</span>
@@ -48,8 +48,8 @@ export default function AdminLayout({ title, children }) {
         </nav>
       </aside>
 
-      <div className="flex min-h-screen flex-1 flex-col">
-        <header className="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-4 dark:border-slate-800 dark:bg-slate-900">
+      <div className="flex h-screen flex-1 flex-col overflow-hidden">
+        <header className="flex shrink-0 items-center justify-between border-b border-slate-200 bg-white px-6 py-4 dark:border-slate-800 dark:bg-slate-900">
           <h1 className="text-xl font-semibold text-slate-900 dark:text-white">{title}</h1>
           <div className="flex items-center gap-3">
             <div className="text-right text-sm">
@@ -75,7 +75,7 @@ export default function AdminLayout({ title, children }) {
           </div>
         </header>
 
-        <main className="flex-1 p-6">{children}</main>
+        <main className="flex-1 overflow-y-auto p-6">{children}</main>
       </div>
     </div>
   );
