@@ -66,7 +66,8 @@ test("filters the station list by division, district and thana", async () => {
   renderWithAuth(<CreateStation />);
   await screen.findByText(/Dhanmondi Thana/);
 
-  fireEvent.change(screen.getByLabelText("Division"), { target: { value: "Chattogram" } });
+  fireEvent.click(screen.getByLabelText("Division"));
+  fireEvent.mouseDown(screen.getByRole("option", { name: "Chattogram" }));
 
   expect(screen.queryByText(/Dhanmondi Thana/)).not.toBeInTheDocument();
   expect(screen.getByText(/Kotwali Thana/)).toBeInTheDocument();
@@ -100,8 +101,10 @@ test("submitting the modal form posts and appends the new station to the list", 
   fireEvent.click(screen.getByRole("button", { name: /\+ create station/i }));
   const dialog = screen.getByRole("dialog");
 
-  fireEvent.change(within(dialog).getByLabelText("Division"), { target: { value: "Dhaka" } });
-  fireEvent.change(within(dialog).getByLabelText("District"), { target: { value: "Dhaka" } });
+  fireEvent.click(within(dialog).getByLabelText("Division"));
+  fireEvent.mouseDown(within(dialog).getByRole("option", { name: "Dhaka" }));
+  fireEvent.click(within(dialog).getByLabelText("District"));
+  fireEvent.mouseDown(within(dialog).getByRole("option", { name: "Dhaka" }));
   fireEvent.change(within(dialog).getByLabelText("Thana / Station name"), { target: { value: "Gulshan Thana" } });
   fireEvent.change(within(dialog).getByLabelText(/station code/i), { target: { value: "DHK-02" } });
   fireEvent.change(within(dialog).getByLabelText(/admin name/i), { target: { value: "Admin Two" } });
