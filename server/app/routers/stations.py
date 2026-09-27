@@ -28,7 +28,13 @@ def create_station(
     if db.query(User).filter(User.username == payload.admin_username).first():
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Username already exists")
 
-    station = Station(name=payload.name, division=payload.division, district=payload.district, code=payload.code)
+    station = Station(
+        name=payload.name,
+        division=payload.division,
+        district=payload.district,
+        thana=payload.thana,
+        code=payload.code,
+    )
     db.add(station)
     db.flush()
 

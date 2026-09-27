@@ -3,7 +3,7 @@ from app.security import hash_password
 
 
 def _make_station(db_session, code="DHK-01"):
-    station = Station(name="Dhanmondi Thana", division="Dhaka", district="Dhaka", code=code)
+    station = Station(name="Dhanmondi Thana", division="Dhaka", district="Dhaka", thana="Dhanmondi", code=code)
     db_session.add(station)
     db_session.commit()
     db_session.refresh(station)

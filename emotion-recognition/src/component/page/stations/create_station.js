@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { apiFetch } from "../../../api/client";
 import { useAuth } from "../../../context/AuthContext";
-import { BD_DIVISIONS, districtsFor } from "../../../data/bd_geo";
+import { BD_DIVISIONS, districtsFor, thanasFor } from "../../../data/bd_geo";
 import AdminLayout from "../../layout/AdminLayout";
 import Button from "../../common/Button";
 import Card from "../../common/Card";
@@ -14,6 +14,7 @@ const emptyForm = {
   name: "",
   division: "",
   district: "",
+  thana: "",
   code: "",
   admin_name: "",
   admin_username: "",
@@ -33,19 +34,25 @@ export default function CreateStation() {
   const [filterDivision, setFilterDivision] = useState("");
   const [filterDistrict, setFilterDistrict] = useState("");
   const [filterThana, setFilterThana] = useState("");
+  const [filterName, setFilterName] = useState("");
+  const [filterCode, setFilterCode] = useState("");
 
   useEffect(() => {
     apiFetch("/stations", { token }).then(setStations).catch((err) => setError(err.message));
   }, [token]);
 
   const formDistrictOptions = useMemo(() => districtsFor(form.division), [form.division]);
+  const formThanaOptions = useMemo(() => thanasFor(form.division, form.district), [form.division, form.district]);
   const filterDistrictOptions = useMemo(() => districtsFor(filterDivision), [filterDivision]);
+  const filterThanaOptions = useMemo(() => thanasFor(filterDivision, filterDistrict), [filterDivision, filterDistrict]);
 
   const filteredStations = stations.filter(
     (s) =>
       (!filterDivision || s.division === filterDivision) &&
       (!filterDistrict || s.district === filterDistrict) &&
-      (!filterThana || s.name.toLowerCase().includes(filterThana.toLowerCase()))
+      (!filterThana || s.thana === filterThana) &&
+      (!filterName || s.name.toLowerCase().includes(filterName.toLowerCase())) &&
+      (!filterCode || s.code.toLowerCase().includes(filterCode.toLowerCase()))
   );
 
   function updateField(field) {
@@ -54,7 +61,8 @@ export default function CreateStation() {
       setForm((f) => ({
         ...f,
         [field]: value,
-        ...(field === "division" ? { district: "" } : {}),
+        ...(field === "division" ? { district: "", thana: "" } : {}),
+        ...(field === "district" ? { thana: "" } : {}),
       }));
     };
   }
@@ -90,7 +98,7 @@ export default function CreateStation() {
 
         <Card>
           <h2 className="mb-4 text-lg font-semibold text-slate-900 dark:text-white">Find stations</h2>
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-5">
             <FormField label="Division" htmlFor="filter_division">
               <SearchableSelect
                 id="filter_division"
@@ -99,6 +107,7 @@ export default function CreateStation() {
                 onChange={(e) => {
                   setFilterDivision(e.target.value);
                   setFilterDistrict("");
+                  setFilterThana("");
                 }}
                 placeholder="All divisions"
                 className={inputClasses}
@@ -109,18 +118,41 @@ export default function CreateStation() {
                 id="filter_district"
                 options={filterDistrictOptions}
                 value={filterDistrict}
-                onChange={(e) => setFilterDistrict(e.target.value)}
+                onChange={(e) => {
+                  setFilterDistrict(e.target.value);
+                  setFilterThana("");
+                }}
                 disabled={!filterDivision}
                 placeholder="All districts"
                 className={inputClasses}
               />
             </FormField>
             <FormField label="Thana" htmlFor="filter_thana">
-              <input
+              <SearchableSelect
                 id="filter_thana"
-                placeholder="Search thana / station name"
+                options={filterThanaOptions}
                 value={filterThana}
                 onChange={(e) => setFilterThana(e.target.value)}
+                disabled={!filterDistrict}
+                placeholder="All thanas"
+                className={inputClasses}
+              />
+            </FormField>
+            <FormField label="Station name" htmlFor="filter_name">
+              <input
+                id="filter_name"
+                placeholder="Search station name"
+                value={filterName}
+                onChange={(e) => setFilterName(e.target.value)}
+                className={inputClasses}
+              />
+            </FormField>
+            <FormField label="Station code" htmlFor="filter_code">
+              <input
+                id="filter_code"
+                placeholder="Search station code"
+                value={filterCode}
+                onChange={(e) => setFilterCode(e.target.value)}
                 className={inputClasses}
               />
             </FormField>
@@ -137,8 +169,8 @@ export default function CreateStation() {
           <ul className="divide-y divide-slate-200 dark:divide-slate-800">
             {filteredStations.map((s) => (
               <li key={s.id} className="py-2 text-sm text-slate-700 dark:text-slate-300">
-                <span className="font-medium text-slate-900 dark:text-white">{s.name}</span> — {s.district},{" "}
-                {s.division} ({s.code})
+                <span className="font-medium text-slate-900 dark:text-white">{s.name}</span> — {s.thana},{" "}
+                {s.district}, {s.division} ({s.code})
               </li>
             ))}
             {filteredStations.length === 0 && (
@@ -171,7 +203,18 @@ export default function CreateStation() {
               className={inputClasses}
             />
           </FormField>
-          <FormField label="Thana / Station name" htmlFor="name">
+          <FormField label="Thana" htmlFor="thana">
+            <SearchableSelect
+              id="thana"
+              options={formThanaOptions}
+              value={form.thana}
+              onChange={updateField("thana")}
+              disabled={!form.district}
+              placeholder="Select thana"
+              className={inputClasses}
+            />
+          </FormField>
+          <FormField label="Station name" htmlFor="name">
             <input id="name" value={form.name} onChange={updateField("name")} className={inputClasses} />
           </FormField>
           <FormField label="Station code" htmlFor="code">

@@ -35,6 +35,7 @@ class StationCreate(BaseModel):
     name: Name
     division: Name
     district: Name
+    thana: Name
     code: Name
     admin_name: Name
     admin_username: Name
@@ -46,6 +47,7 @@ class StationOut(BaseModel):
     name: str
     division: str
     district: str
+    thana: str
     code: str
 
     class Config:

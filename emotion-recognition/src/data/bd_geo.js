@@ -1,3 +1,5 @@
+import BD_THANAS from "./bd_thanas.json";
+
 export const BD_DIVISIONS = [
   {
     name: "Dhaka",
@@ -61,4 +63,8 @@ export const BD_DIVISIONS = [
 
 export function districtsFor(divisionName) {
   return BD_DIVISIONS.find((d) => d.name === divisionName)?.districts ?? [];
+}
+
+export function thanasFor(divisionName, districtName) {
+  return BD_THANAS[divisionName]?.[districtName] ?? [];
 }

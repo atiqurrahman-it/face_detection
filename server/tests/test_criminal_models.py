@@ -5,7 +5,7 @@ from app.security import hash_password
 
 
 def test_create_criminal_with_photo(db_session):
-    station = Station(name="Dhanmondi Thana", division="Dhaka", district="Dhaka", code="DHK-01")
+    station = Station(name="Dhanmondi Thana", division="Dhaka", district="Dhaka", thana="Dhanmondi", code="DHK-01")
     db_session.add(station)
     db_session.flush()
 

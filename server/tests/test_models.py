@@ -2,7 +2,7 @@ from app.models import Role, Station, User
 
 
 def test_create_station_and_user(db_session):
-    station = Station(name="Dhanmondi Thana", division="Dhaka", district="Dhaka", code="DHK-01")
+    station = Station(name="Dhanmondi Thana", division="Dhaka", district="Dhaka", thana="Dhanmondi", code="DHK-01")
     db_session.add(station)
     db_session.flush()
 
