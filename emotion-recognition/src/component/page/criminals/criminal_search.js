@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import Webcam from "react-webcam";
 import { apiFetch, API_BASE_URL } from "../../../api/client";
 import { useAuth } from "../../../context/AuthContext";
 import { BD_DIVISIONS, districtsFor } from "../../../data/bd_geo";
@@ -16,6 +17,18 @@ import { TrashIcon, UserCircleIcon } from "../../common/icons";
 
 const inputClasses =
   "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-slate-600 dark:bg-slate-800 dark:text-white";
+
+const fileInputClasses =
+  "block w-full text-sm text-slate-600 file:mr-4 file:rounded-lg file:border-0 file:bg-emerald-500 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-emerald-600 dark:text-slate-300";
+
+function dataUrlToBlob(dataUrl) {
+  const [header, base64] = dataUrl.split(",");
+  const mime = header.match(/:(.*?);/)[1];
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+  return new Blob([bytes], { type: mime });
+}
 
 function Thumbnail({ criminal }) {
   const frontPhoto = criminal.photos.find((p) => p.angle === "front");
@@ -50,6 +63,13 @@ export default function CriminalSearch() {
 
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState("20");
+
+  const [photoSearchResults, setPhotoSearchResults] = useState(null);
+  const [photoSearchError, setPhotoSearchError] = useState(null);
+  const [photoSearchLoading, setPhotoSearchLoading] = useState(false);
+  const [showCamera, setShowCamera] = useState(false);
+  const [fileInputKey, setFileInputKey] = useState(0);
+  const webcamRef = useRef(null);
 
   const stationLabel = useCallback((s) => `${s.name} (${s.code})`, []);
   const filterDistrictOptions = useMemo(() => districtsFor(filterDivision), [filterDivision]);
@@ -104,13 +124,52 @@ export default function CriminalSearch() {
     setError(null);
     try {
       await apiFetch(`/criminals/${id}`, { method: "DELETE", token });
-      fetchCriminals();
+      if (photoSearchResults !== null) {
+        setPhotoSearchResults((prev) => prev.filter((c) => c.id !== id));
+      } else {
+        fetchCriminals();
+      }
     } catch (err) {
       setError(err.message);
     }
   }
 
+  async function searchByPhoto(blob) {
+    setPhotoSearchError(null);
+    setPhotoSearchLoading(true);
+    try {
+      const body = new FormData();
+      body.append("photo", blob, "search.jpg");
+      const results = await apiFetch("/criminals/search-by-photo", { method: "POST", body, token });
+      setPhotoSearchResults(results);
+    } catch (err) {
+      setPhotoSearchError(err.message);
+    } finally {
+      setPhotoSearchLoading(false);
+    }
+  }
+
+  function handlePhotoUpload(e) {
+    const file = e.target.files[0];
+    if (file) searchByPhoto(file);
+  }
+
+  function handleCapture() {
+    const imageSrc = webcamRef.current?.getScreenshot();
+    if (!imageSrc) return;
+    searchByPhoto(dataUrlToBlob(imageSrc));
+  }
+
+  function clearPhotoSearch() {
+    setPhotoSearchResults(null);
+    setPhotoSearchError(null);
+    setShowCamera(false);
+    setFileInputKey((k) => k + 1);
+  }
+
   const totalPages = Math.max(1, Math.ceil(listMeta.total / Number(listMeta.page_size || pageSize)));
+  const isPhotoSearchActive = photoSearchResults !== null;
+  const displayedCriminals = isPhotoSearchActive ? photoSearchResults : criminals;
 
   const columns = [
     { key: "photo", header: "", render: (row) => <Thumbnail criminal={row} /> },
@@ -127,6 +186,19 @@ export default function CriminalSearch() {
     { key: "crime_type", header: "Crime" },
     { key: "station", header: "Station", render: (row) => `${row.station.name} (${row.station.code})` },
     { key: "status", header: "Status", render: (row) => <StatusBadge status={row.status} /> },
+    ...(isPhotoSearchActive
+      ? [
+          {
+            key: "confidence",
+            header: "Match",
+            render: (row) => (
+              <span className="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400">
+                {row.confidence}%
+              </span>
+            ),
+          },
+        ]
+      : []),
     ...(canDelete
       ? [
           {
@@ -155,6 +227,62 @@ export default function CriminalSearch() {
             <Button type="button">+ Add Criminal</Button>
           </Link>
         </div>
+
+        <Card>
+          <h2 className="mb-4 text-lg font-semibold text-slate-900 dark:text-white">Search by photo</h2>
+          <div className="flex flex-wrap items-start gap-6">
+            <div className="w-full max-w-xs">
+              <FormField label="Upload a photo" htmlFor="photo_search_upload">
+                <input
+                  key={fileInputKey}
+                  type="file"
+                  id="photo_search_upload"
+                  accept="image/*"
+                  onChange={handlePhotoUpload}
+                  className={fileInputClasses}
+                />
+              </FormField>
+            </div>
+            <div className="space-y-2">
+              <Button type="button" variant="secondary" onClick={() => setShowCamera((v) => !v)}>
+                {showCamera ? "Close camera" : "Use live camera"}
+              </Button>
+              {showCamera && (
+                <div className="space-y-2">
+                  <Webcam
+                    ref={webcamRef}
+                    screenshotFormat="image/jpeg"
+                    className="w-64 rounded-lg border border-slate-300 dark:border-slate-600"
+                  />
+                  <Button type="button" onClick={handleCapture} disabled={photoSearchLoading}>
+                    Capture &amp; search
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {photoSearchLoading && <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">Searching…</p>}
+          {photoSearchError && (
+            <p role="alert" className="mt-3 text-sm text-red-600 dark:text-red-400">
+              {photoSearchError}
+            </p>
+          )}
+          {isPhotoSearchActive && (
+            <div className="mt-4 flex items-center justify-between rounded-lg bg-slate-50 px-4 py-2 dark:bg-slate-800/60">
+              <p className="text-sm text-slate-600 dark:text-slate-300">
+                {photoSearchResults.length} match{photoSearchResults.length === 1 ? "" : "es"} found
+              </p>
+              <button
+                type="button"
+                onClick={clearPhotoSearch}
+                className="text-sm font-medium text-emerald-600 hover:underline dark:text-emerald-400"
+              >
+                Clear photo search
+              </button>
+            </div>
+          )}
+        </Card>
 
         <Card>
           <h2 className="mb-4 text-lg font-semibold text-slate-900 dark:text-white">Filters</h2>
@@ -260,12 +388,12 @@ export default function CriminalSearch() {
           )}
           <DataTable
             columns={columns}
-            rows={criminals}
+            rows={displayedCriminals}
             keyField="id"
-            emptyMessage="No criminals match this filter."
+            emptyMessage={isPhotoSearchActive ? "No matching criminals found for this photo." : "No criminals match this filter."}
           />
 
-          {listMeta.total > 0 && (
+          {!isPhotoSearchActive && listMeta.total > 0 && (
             <div className="mt-4">
               <Pagination
                 currentPage={listMeta.page}

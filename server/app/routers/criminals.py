@@ -2,6 +2,7 @@ import os
 from datetime import datetime
 from typing import Optional
 
+import numpy as np
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
 from pydantic import ValidationError
 from sqlalchemy import or_
@@ -10,12 +11,15 @@ from starlette import status
 
 from ..database import get_db
 from ..deps import require_roles
+from ..face_matching import compute_face_embedding, decode_embedding, encode_embedding, face_distance
 from ..models import Criminal, CriminalPhoto, CriminalStatus, Role, Station, User
-from ..schemas import CriminalCreate, CriminalListOut, CriminalOut, CriminalUpdate
+from ..schemas import CriminalCreate, CriminalListOut, CriminalMatchOut, CriminalOut, CriminalUpdate
 from ..storage import CONTENT_TYPE_EXTENSIONS, remove_criminal_photos, save_criminal_photo
 from .stations import _station_scope
 
 router = APIRouter(prefix="/criminals", tags=["criminals"])
+
+MATCH_DISTANCE_THRESHOLD = 0.6
 
 
 def _parse_payload(payload: str, model):
@@ -36,6 +40,22 @@ def _validate_photo(upload: UploadFile) -> None:
     upload.file.seek(0)
     if size == 0:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Photo file is empty")
+
+
+def _save_photo(db: Session, criminal: Criminal, angle: str, upload: UploadFile) -> None:
+    _validate_photo(upload)
+    content = upload.file.read()
+    upload.file.seek(0)
+    embedding = compute_face_embedding(content)
+    face_embedding = encode_embedding(embedding) if embedding else None
+
+    path = save_criminal_photo(criminal.criminal_code, angle, upload)
+    existing = next((p for p in criminal.photos if p.angle == angle), None)
+    if existing:
+        existing.photo_path = path
+        existing.face_embedding = face_embedding
+    else:
+        db.add(CriminalPhoto(criminal_id=criminal.id, photo_path=path, angle=angle, face_embedding=face_embedding))
 
 
 @router.post("", response_model=CriminalOut, status_code=status.HTTP_201_CREATED)
@@ -89,13 +109,55 @@ async def create_criminal(
 
     for angle, upload in (("front", front_photo), ("left_profile", left_photo), ("right_profile", right_photo)):
         if upload is not None:
-            _validate_photo(upload)
-            path = save_criminal_photo(criminal.criminal_code, angle, upload)
-            db.add(CriminalPhoto(criminal_id=criminal.id, photo_path=path, angle=angle))
+            _save_photo(db, criminal, angle, upload)
 
     db.commit()
     db.refresh(criminal)
     return criminal
+
+
+@router.post("/search-by-photo", response_model=list[CriminalMatchOut])
+async def search_criminals_by_photo(
+    photo: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(Role.SUPER_ADMIN, Role.ADMIN, Role.USER)),
+):
+    _validate_photo(photo)
+    content = await photo.read()
+    query_embedding = compute_face_embedding(content)
+    if query_embedding is None:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="No face detected in the uploaded photo")
+    query_vector = np.array(query_embedding)
+
+    photos_query = db.query(CriminalPhoto).filter(CriminalPhoto.face_embedding.isnot(None))
+    if current_user.role != Role.SUPER_ADMIN:
+        photos_query = photos_query.join(Criminal, CriminalPhoto.criminal_id == Criminal.id).filter(
+            Criminal.station_id == current_user.station_id
+        )
+
+    best_distance_by_criminal = {}
+    for candidate in photos_query.all():
+        distance = face_distance(query_vector, decode_embedding(candidate.face_embedding))
+        if distance > MATCH_DISTANCE_THRESHOLD:
+            continue
+        best = best_distance_by_criminal.get(candidate.criminal_id)
+        if best is None or distance < best:
+            best_distance_by_criminal[candidate.criminal_id] = distance
+
+    if not best_distance_by_criminal:
+        return []
+
+    criminals = db.query(Criminal).filter(Criminal.id.in_(best_distance_by_criminal.keys())).all()
+    results = [
+        CriminalMatchOut(
+            **CriminalOut.from_orm(criminal).dict(),
+            distance=best_distance_by_criminal[criminal.id],
+            confidence=round(max(0.0, 1 - best_distance_by_criminal[criminal.id]) * 100, 1),
+        )
+        for criminal in criminals
+    ]
+    results.sort(key=lambda r: r.distance)
+    return results
 
 
 @router.delete("/{criminal_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -184,13 +246,7 @@ async def update_criminal(
 
     for angle, upload in (("front", front_photo), ("left_profile", left_photo), ("right_profile", right_photo)):
         if upload is not None:
-            _validate_photo(upload)
-            path = save_criminal_photo(criminal.criminal_code, angle, upload)
-            existing = next((p for p in criminal.photos if p.angle == angle), None)
-            if existing:
-                existing.photo_path = path
-            else:
-                db.add(CriminalPhoto(criminal_id=criminal.id, photo_path=path, angle=angle))
+            _save_photo(db, criminal, angle, upload)
 
     db.commit()
     db.refresh(criminal)

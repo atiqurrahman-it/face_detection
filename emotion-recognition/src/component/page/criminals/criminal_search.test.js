@@ -4,6 +4,18 @@ import { AuthContext } from "../../../context/AuthContext";
 import { ThemeContext } from "../../../context/ThemeContext";
 import CriminalSearch from "./criminal_search";
 
+// react-webcam needs a real camera/getUserMedia, which jsdom doesn't provide.
+// Stub it with a fake screenshot so the capture flow can be exercised directly.
+jest.mock("react-webcam", () => {
+  const React = require("react");
+  return React.forwardRef((props, ref) => {
+    React.useImperativeHandle(ref, () => ({
+      getScreenshot: () => "data:image/jpeg;base64,ZmFrZQ==",
+    }));
+    return React.createElement("video", { "data-testid": "mock-webcam" });
+  });
+});
+
 function renderWithAuth(ui, user) {
   return render(
     <AuthContext.Provider value={{ user, token: "abc123", loading: false, logout: jest.fn() }}>
@@ -18,8 +30,9 @@ function renderWithAuth(ui, user) {
  * Fakes `/criminals` (list + delete) and `/stations` (for the super-admin
  * station filter), mirroring the real backend's query params and shapes.
  */
-function mockCriminalsApi({ criminals = [], stations = [] } = {}) {
+function mockCriminalsApi({ criminals = [], stations = [], photoMatches = null } = {}) {
   const items = [...criminals];
+  const photoSearchRequests = [];
 
   global.fetch.mockImplementation(async (url, options = {}) => {
     const method = options.method || "GET";
@@ -34,6 +47,14 @@ function mockCriminalsApi({ criminals = [], stations = [] } = {}) {
           pagination: { total: stations.length, page: 1, limit: 100, totalPages: 1 },
         }),
       };
+    }
+
+    if (method === "POST" && parsed.pathname === "/criminals/search-by-photo") {
+      photoSearchRequests.push(options.body);
+      if (photoMatches === null) {
+        return { ok: false, json: async () => ({ detail: "No face detected in the uploaded photo" }) };
+      }
+      return { ok: true, json: async () => photoMatches };
     }
 
     if (method === "DELETE" && parsed.pathname.startsWith("/criminals/")) {
@@ -61,7 +82,7 @@ function mockCriminalsApi({ criminals = [], stations = [] } = {}) {
     return { ok: true, json: async () => ({ items: data, total, page, page_size: pageSize }) };
   });
 
-  return items;
+  return { items, photoSearchRequests };
 }
 
 function criminal(overrides) {
@@ -80,6 +101,10 @@ function criminal(overrides) {
 beforeEach(() => {
   global.fetch = jest.fn();
 });
+
+function jpegFile(name = "search.jpg") {
+  return new File(["fake-bytes"], name, { type: "image/jpeg" });
+}
 
 test("renders inside AdminLayout with an Add Criminal link", async () => {
   mockCriminalsApi({});
@@ -163,4 +188,57 @@ test("a station user cannot delete a criminal", async () => {
   await screen.findByText("Jane Roe");
 
   expect(screen.queryByRole("button", { name: /delete jane roe/i })).not.toBeInTheDocument();
+});
+
+test("uploading a photo shows matching criminals with a confidence badge, replacing the normal list", async () => {
+  const { photoSearchRequests } = mockCriminalsApi({
+    criminals: [criminal({ id: 1, full_name: "Regular List Suspect" })],
+    photoMatches: [criminal({ id: 2, full_name: "Photo Match Suspect", confidence: 92.5, distance: 0.2 })],
+  });
+
+  renderWithAuth(<CriminalSearch />, { role: "user", username: "officer1", station_id: 1 });
+  await screen.findByText("Regular List Suspect");
+
+  fireEvent.change(screen.getByLabelText("Upload a photo"), { target: { files: [jpegFile()] } });
+
+  expect(await screen.findByText("Photo Match Suspect")).toBeInTheDocument();
+  expect(screen.getByText("92.5%")).toBeInTheDocument();
+  expect(screen.queryByText("Regular List Suspect")).not.toBeInTheDocument();
+  expect(photoSearchRequests[0].get("photo")).toBeTruthy();
+});
+
+test("shows an error when no face is detected, and clearing the photo search restores the normal list", async () => {
+  mockCriminalsApi({
+    criminals: [criminal({ id: 1, full_name: "Regular List Suspect" })],
+    photoMatches: [criminal({ id: 2, full_name: "Photo Match Suspect", confidence: 92.5, distance: 0.2 })],
+  });
+
+  renderWithAuth(<CriminalSearch />, { role: "user", username: "officer1", station_id: 1 });
+  await screen.findByText("Regular List Suspect");
+
+  fireEvent.change(screen.getByLabelText("Upload a photo"), { target: { files: [jpegFile()] } });
+  await screen.findByText("Photo Match Suspect");
+
+  fireEvent.click(screen.getByRole("button", { name: /clear photo search/i }));
+
+  expect(screen.queryByText("Photo Match Suspect")).not.toBeInTheDocument();
+  expect(await screen.findByText("Regular List Suspect")).toBeInTheDocument();
+});
+
+test("capturing a live camera frame searches by photo", async () => {
+  mockCriminalsApi({
+    criminals: [criminal({ id: 1, full_name: "Regular List Suspect" })],
+    photoMatches: [criminal({ id: 2, full_name: "Camera Match Suspect", confidence: 88, distance: 0.3 })],
+  });
+
+  renderWithAuth(<CriminalSearch />, { role: "user", username: "officer1", station_id: 1 });
+  await screen.findByText("Regular List Suspect");
+
+  expect(screen.queryByRole("button", { name: /capture & search/i })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: /use live camera/i }));
+
+  expect(screen.getByTestId("mock-webcam")).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: /capture & search/i }));
+
+  expect(await screen.findByText("Camera Match Suspect")).toBeInTheDocument();
 });

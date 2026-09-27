@@ -157,6 +157,11 @@ class CriminalListOut(BaseModel):
     page_size: int
 
 
+class CriminalMatchOut(CriminalOut):
+    distance: float
+    confidence: float
+
+
 class CriminalUpdate(BaseModel):
     full_name: Optional[Name] = None
     gender: Optional[Name] = None
