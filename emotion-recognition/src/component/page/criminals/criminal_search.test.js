@@ -101,7 +101,7 @@ function criminal(overrides) {
     full_name: "John Doe",
     crime_type: "Theft",
     status: "Wanted",
-    station: { id: 1, name: "Dhanmondi Thana", code: "DHK-01" },
+    station: { id: 1, name: "Dhanmondi Thana", division: "Dhaka", district: "Dhaka", thana: "Dhanmondi", code: "DHK-01" },
     photos: [],
     ...overrides,
   };
@@ -279,6 +279,7 @@ test("viewing a criminal shows their details in a read-only modal", async () => 
       criminal({
         full_name: "Jane Roe",
         alias: "JR",
+        gender: "Female",
         phone: "0123456789",
         crime_description: "Details of the offence.",
       }),
@@ -293,6 +294,10 @@ test("viewing a criminal shows their details in a read-only modal", async () => 
   const dialog = screen.getByRole("dialog");
   expect(within(dialog).getByText("Details of the offence.")).toBeInTheDocument();
   expect(within(dialog).getByText("0123456789")).toBeInTheDocument();
+  expect(within(dialog).getByText("Female")).toBeInTheDocument();
+  expect(within(dialog).getByText(/Dhanmondi, Dhaka, Dhaka/)).toBeInTheDocument();
+  expect(within(dialog).getByText("Repeat offender")).toBeInTheDocument();
+  expect(within(dialog).getByText("No")).toBeInTheDocument();
   expect(within(dialog).queryByRole("button", { name: /save changes/i })).not.toBeInTheDocument();
 });
 

@@ -15,6 +15,7 @@ const fileInputClasses =
   "block w-full text-sm text-slate-600 file:mr-4 file:rounded-lg file:border-0 file:bg-emerald-500 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-emerald-600 dark:text-slate-300";
 
 const DETAIL_FIELDS = [
+  ["Gender", "gender"],
   ["Alias", "alias"],
   ["Father's name", "father_name"],
   ["Mother's name", "mother_name"],
@@ -33,6 +34,11 @@ const DETAIL_FIELDS = [
   ["Present address", "present_address"],
   ["Permanent address", "permanent_address"],
 ];
+
+function formatDateTime(value) {
+  if (!value) return null;
+  return new Date(value).toLocaleString();
+}
 
 export function ViewCriminalModal({ criminal, onClose }) {
   return (
@@ -64,7 +70,8 @@ export function ViewCriminalModal({ criminal, onClose }) {
           </div>
 
           <p className="text-sm text-slate-600 dark:text-slate-300">
-            Station: {criminal.station.name} ({criminal.station.code})
+            Station: {criminal.station.name} ({criminal.station.code}) — {criminal.station.thana},{" "}
+            {criminal.station.district}, {criminal.station.division}
           </p>
 
           {criminal.crime_description && (
@@ -72,6 +79,10 @@ export function ViewCriminalModal({ criminal, onClose }) {
           )}
 
           <dl className="grid gap-x-6 gap-y-2 sm:grid-cols-2">
+            <div>
+              <dt className="text-xs uppercase tracking-wide text-slate-400">Repeat offender</dt>
+              <dd className="text-sm text-slate-800 dark:text-slate-200">{criminal.repeat_offender ? "Yes" : "No"}</dd>
+            </div>
             {DETAIL_FIELDS.filter(([, key]) => criminal[key]).map(([label, key]) => (
               <div key={key}>
                 <dt className="text-xs uppercase tracking-wide text-slate-400">{label}</dt>
@@ -79,6 +90,11 @@ export function ViewCriminalModal({ criminal, onClose }) {
               </div>
             ))}
           </dl>
+
+          <div className="border-t border-slate-200 pt-3 text-xs text-slate-400 dark:border-slate-700">
+            <p>Added {formatDateTime(criminal.created_at)}</p>
+            {criminal.updated_at !== criminal.created_at && <p>Last updated {formatDateTime(criminal.updated_at)}</p>}
+          </div>
         </div>
       )}
     </Modal>
