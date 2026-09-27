@@ -1,4 +1,4 @@
-from app.models import Role, Station, User
+from app.models import Criminal, CriminalStatus, Role, Station, User
 from app.security import hash_password
 
 
@@ -204,3 +204,31 @@ def test_stations_list_is_paginated_and_filterable(client, db_session):
     assert len(body["data"]) == 1
     assert body["data"][0]["code"] == "CTG-01"
     assert body["pagination"]["total"] == 1
+
+
+def test_stations_list_includes_criminal_count(client, db_session):
+    root = _make_user(db_session, "root", "s3cret", Role.SUPER_ADMIN)
+    token = _login(client, "root", "s3cret")
+    station = _make_station(db_session)
+    other_station = _make_station(db_session, code="DHK-02")
+
+    for i in range(2):
+        db_session.add(
+            Criminal(
+                criminal_code=f"CR-{i + 1}",
+                full_name=f"Suspect {i + 1}",
+                gender="Male",
+                crime_type="Theft",
+                status=CriminalStatus.WANTED,
+                station_id=station.id,
+                added_by=root.id,
+            )
+        )
+    db_session.commit()
+
+    response = client.get("/stations", headers=_auth(token))
+    body = response.json()
+
+    counts_by_code = {s["code"]: s["criminal_count"] for s in body["data"]}
+    assert counts_by_code[station.code] == 2
+    assert counts_by_code[other_station.code] == 0

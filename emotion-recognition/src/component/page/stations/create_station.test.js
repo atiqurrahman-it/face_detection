@@ -35,7 +35,15 @@ function mockStationsApi(initialStations) {
       if (stations.some((s) => s.code === body.code)) {
         return { ok: false, json: async () => ({ detail: "Station code already exists" }) };
       }
-      const created = { id: nextId++, name: body.name, division: body.division, district: body.district, thana: body.thana, code: body.code };
+      const created = {
+        id: nextId++,
+        name: body.name,
+        division: body.division,
+        district: body.district,
+        thana: body.thana,
+        code: body.code,
+        criminal_count: 0,
+      };
       stations.push(created);
       return { ok: true, json: async () => created };
     }
@@ -79,8 +87,8 @@ test("renders inside AdminLayout with its own page title", async () => {
 
 test("shows the total station count", async () => {
   mockStationsApi([
-    { id: 1, name: "Dhanmondi Thana", division: "Dhaka", district: "Dhaka", thana: "Dhanmondi", code: "DHK-01" },
-    { id: 2, name: "Gulshan Thana", division: "Dhaka", district: "Dhaka", thana: "Gulshan", code: "DHK-02" },
+    { id: 1, name: "Dhanmondi Thana", division: "Dhaka", district: "Dhaka", thana: "Dhanmondi", code: "DHK-01", criminal_count: 0 },
+    { id: 2, name: "Gulshan Thana", division: "Dhaka", district: "Dhaka", thana: "Gulshan", code: "DHK-02", criminal_count: 0 },
   ]);
 
   renderWithAuth(<CreateStation />);
@@ -89,17 +97,20 @@ test("shows the total station count", async () => {
 });
 
 test("lists existing stations on load", async () => {
-  mockStationsApi([{ id: 1, name: "Dhanmondi Thana", division: "Dhaka", district: "Dhaka", thana: "Dhanmondi", code: "DHK-01" }]);
+  mockStationsApi([
+    { id: 1, name: "Dhanmondi Thana", division: "Dhaka", district: "Dhaka", thana: "Dhanmondi", code: "DHK-01", criminal_count: 3 },
+  ]);
 
   renderWithAuth(<CreateStation />);
 
   expect(await screen.findByText(/Dhanmondi Thana/)).toBeInTheDocument();
+  expect(screen.getByText("3 criminals")).toBeInTheDocument();
 });
 
 test("filters the station list by division, district and thana", async () => {
   mockStationsApi([
-    { id: 1, name: "Dhanmondi Thana", division: "Dhaka", district: "Dhaka", thana: "Dhanmondi", code: "DHK-01" },
-    { id: 2, name: "Kotwali Thana", division: "Chattogram", district: "Chattogram", thana: "Kotwali", code: "CTG-01" },
+    { id: 1, name: "Dhanmondi Thana", division: "Dhaka", district: "Dhaka", thana: "Dhanmondi", code: "DHK-01", criminal_count: 0 },
+    { id: 2, name: "Kotwali Thana", division: "Chattogram", district: "Chattogram", thana: "Kotwali", code: "CTG-01", criminal_count: 0 },
   ]);
 
   renderWithAuth(<CreateStation />);
@@ -137,8 +148,8 @@ test("paginates the station list once it exceeds the page size", async () => {
 
 test("only offers per-page options that make sense for the current result count", async () => {
   mockStationsApi([
-    { id: 1, name: "Dhanmondi Thana", division: "Dhaka", district: "Dhaka", thana: "Dhanmondi", code: "DHK-01" },
-    { id: 2, name: "Gulshan Thana", division: "Dhaka", district: "Dhaka", thana: "Gulshan", code: "DHK-02" },
+    { id: 1, name: "Dhanmondi Thana", division: "Dhaka", district: "Dhaka", thana: "Dhanmondi", code: "DHK-01", criminal_count: 0 },
+    { id: 2, name: "Gulshan Thana", division: "Dhaka", district: "Dhaka", thana: "Gulshan", code: "DHK-02", criminal_count: 0 },
   ]);
 
   renderWithAuth(<CreateStation />);
@@ -196,7 +207,7 @@ test("submitting the modal form posts and appends the new station to the list", 
 });
 
 test("shows an error message inside the modal when station creation fails", async () => {
-  mockStationsApi([{ id: 1, name: "Existing Thana", division: "Dhaka", district: "Dhaka", thana: "Existing", code: "DHK-02" }]);
+  mockStationsApi([{ id: 1, name: "Existing Thana", division: "Dhaka", district: "Dhaka", thana: "Existing", code: "DHK-02", criminal_count: 0 }]);
 
   renderWithAuth(<CreateStation />);
   await waitFor(() => expect(global.fetch).toHaveBeenCalled());

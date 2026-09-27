@@ -1,11 +1,12 @@
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from ..database import get_db
 from ..deps import require_roles
-from ..models import Role, Station, User
+from ..models import Criminal, Role, Station, User
 from ..schemas import StationCreate, StationListResponse, StationOut, StationUserCreate, UserOut
 from ..security import hash_password
 
@@ -50,7 +51,15 @@ def create_station(
     db.add(admin)
     db.commit()
     db.refresh(station)
-    return station
+    return {
+        "id": station.id,
+        "name": station.name,
+        "division": station.division,
+        "district": station.district,
+        "thana": station.thana,
+        "code": station.code,
+        "criminal_count": 0,
+    }
 
 
 @router.get("", response_model=StationListResponse)
@@ -81,9 +90,28 @@ def list_stations(
     total_pages = max(1, -(-total // limit))
     stations = query.order_by(Station.id).offset((page - 1) * limit).limit(limit).all()
 
+    counts = dict(
+        db.query(Criminal.station_id, func.count(Criminal.id))
+        .filter(Criminal.station_id.in_([s.id for s in stations]))
+        .group_by(Criminal.station_id)
+        .all()
+    )
+    data = [
+        {
+            "id": s.id,
+            "name": s.name,
+            "division": s.division,
+            "district": s.district,
+            "thana": s.thana,
+            "code": s.code,
+            "criminal_count": counts.get(s.id, 0),
+        }
+        for s in stations
+    ]
+
     return {
         "success": True,
-        "data": stations,
+        "data": data,
         "pagination": {"total": total, "page": page, "limit": limit, "totalPages": total_pages},
     }
 

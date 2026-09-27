@@ -201,9 +201,14 @@ export default function CreateStation() {
           )}
           <ul className="divide-y divide-slate-200 dark:divide-slate-800">
             {stations.map((s) => (
-              <li key={s.id} className="py-2 text-sm text-slate-700 dark:text-slate-300">
-                <span className="font-medium text-slate-900 dark:text-white">{s.name}</span> — {s.thana},{" "}
-                {s.district}, {s.division} ({s.code})
+              <li key={s.id} className="flex items-center justify-between gap-4 py-2 text-sm text-slate-700 dark:text-slate-300">
+                <span>
+                  <span className="font-medium text-slate-900 dark:text-white">{s.name}</span> — {s.thana},{" "}
+                  {s.district}, {s.division} ({s.code})
+                </span>
+                <span className="shrink-0 rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400">
+                  {s.criminal_count} criminal{s.criminal_count === 1 ? "" : "s"}
+                </span>
               </li>
             ))}
             {pagination.total === 0 && (

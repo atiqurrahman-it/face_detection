@@ -49,6 +49,7 @@ class StationOut(BaseModel):
     district: str
     thana: str
     code: str
+    criminal_count: int = 0
 
     class Config:
         orm_mode = True
