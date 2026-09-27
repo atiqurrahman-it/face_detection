@@ -73,6 +73,29 @@ test("filters the station list by division, district and thana", async () => {
   expect(screen.getByText(/Kotwali Thana/)).toBeInTheDocument();
 });
 
+test("paginates the station list once it exceeds the page size", async () => {
+  const stations = Array.from({ length: 12 }, (_, i) => ({
+    id: i + 1,
+    name: `Station ${i + 1}`,
+    division: "Dhaka",
+    district: "Dhaka",
+    thana: `Thana ${i + 1}`,
+    code: `DHK-${i + 1}`,
+  }));
+  global.fetch.mockResolvedValueOnce({ ok: true, json: async () => stations });
+
+  renderWithAuth(<CreateStation />);
+  await screen.findByText(/Station 1\b/);
+
+  expect(screen.getByText(/Station 10\b/)).toBeInTheDocument();
+  expect(screen.queryByText(/Station 11\b/)).not.toBeInTheDocument();
+
+  fireEvent.click(screen.getByRole("button", { name: /next page/i }));
+
+  expect(await screen.findByText(/Station 11\b/)).toBeInTheDocument();
+  expect(screen.queryByText(/Station 1\b/)).not.toBeInTheDocument();
+});
+
 test("the create-station form is inside a modal, hidden until opened", async () => {
   global.fetch.mockResolvedValueOnce({ ok: true, json: async () => [] });
 

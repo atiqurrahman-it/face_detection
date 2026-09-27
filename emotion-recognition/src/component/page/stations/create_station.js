@@ -7,6 +7,7 @@ import Button from "../../common/Button";
 import Card from "../../common/Card";
 import FormField from "../../common/FormField";
 import Modal from "../../common/Modal";
+import Pagination from "../../common/Pagination";
 import SearchableSelect from "../../common/SearchableSelect";
 import StatCard from "../../common/StatCard";
 
@@ -37,6 +38,9 @@ export default function CreateStation() {
   const [filterName, setFilterName] = useState("");
   const [filterCode, setFilterCode] = useState("");
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState("10");
+
   useEffect(() => {
     apiFetch("/stations", { token }).then(setStations).catch((err) => setError(err.message));
   }, [token]);
@@ -53,6 +57,17 @@ export default function CreateStation() {
       (!filterThana || s.thana === filterThana) &&
       (!filterName || s.name.toLowerCase().includes(filterName.toLowerCase())) &&
       (!filterCode || s.code.toLowerCase().includes(filterCode.toLowerCase()))
+  );
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filterDivision, filterDistrict, filterThana, filterName, filterCode, pageSize]);
+
+  const totalItems = filteredStations.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / Number(pageSize)));
+  const paginatedStations = filteredStations.slice(
+    (currentPage - 1) * Number(pageSize),
+    currentPage * Number(pageSize)
   );
 
   function updateField(field) {
@@ -167,16 +182,28 @@ export default function CreateStation() {
             </p>
           )}
           <ul className="divide-y divide-slate-200 dark:divide-slate-800">
-            {filteredStations.map((s) => (
+            {paginatedStations.map((s) => (
               <li key={s.id} className="py-2 text-sm text-slate-700 dark:text-slate-300">
                 <span className="font-medium text-slate-900 dark:text-white">{s.name}</span> — {s.thana},{" "}
                 {s.district}, {s.division} ({s.code})
               </li>
             ))}
-            {filteredStations.length === 0 && (
+            {totalItems === 0 && (
               <li className="py-2 text-sm text-slate-500 dark:text-slate-400">No stations match this filter.</li>
             )}
           </ul>
+
+          {totalItems > 0 && (
+            <div className="mt-4">
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+                pageSize={pageSize}
+                onPageSizeChange={setPageSize}
+              />
+            </div>
+          )}
         </Card>
       </div>
 
