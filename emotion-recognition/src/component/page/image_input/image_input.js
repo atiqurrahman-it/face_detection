@@ -1,6 +1,4 @@
 import React, { useState } from "react";
-import Background from "../../backgorund/backgorun";
-import Nav from "../../navbar/navbar";
 import EmotionBreakdown from "../../common/EmotionBreakdown";
 import FaceOverlay from "../../common/FaceOverlay";
 
@@ -64,11 +62,7 @@ const ImageInput = () => {
   };
 
   return (
-    <div className="relative min-h-screen w-full overflow-hidden bg-slate-50 transition-colors duration-300 dark:bg-slate-950">
-      <Background />
-      <div className="relative z-10">
-        <Nav />
-        <main className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 pb-16 pt-10 xl:flex-row xl:items-start">
+    <main className="mx-auto flex w-full max-w-6xl flex-col gap-8 xl:flex-row xl:items-start">
           <div className="w-full rounded-2xl border border-slate-200 bg-white p-6 shadow-lg transition-colors dark:border-slate-800 dark:bg-slate-900 xl:max-w-xl xl:shrink-0">
             <h2 className="mb-4 font-semibold text-slate-800 dark:text-white">
               Upload a Photo
@@ -170,9 +164,7 @@ const ImageInput = () => {
               </div>
             )}
           </div>
-        </main>
-      </div>
-    </div>
+    </main>
   );
 };
 

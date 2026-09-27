@@ -1,8 +1,18 @@
-import { render, screen } from '@testing-library/react';
-import App from './App';
+import { render, screen } from "@testing-library/react";
+import App from "./App";
 
-test('renders learn react link', () => {
+jest.mock("./component/backgorund/backgorun", () => () => null);
+
+test("redirects a removed or unknown route to the home page", () => {
+  window.history.pushState({}, "", "/face-detection");
   render(<App />);
-  const linkElement = screen.getByText(/learn react/i);
-  expect(linkElement).toBeInTheDocument();
+  expect(screen.getByText("ArgusID")).toBeInTheDocument();
+  expect(screen.getByRole("link", { name: /sign in/i })).toBeInTheDocument();
+});
+
+test("bounces an unauthenticated visitor away from the Fun Game route to login", () => {
+  window.history.pushState({}, "", "/fun-game");
+  render(<App />);
+  expect(screen.getByRole("button", { name: /log in/i })).toBeInTheDocument();
+  expect(screen.queryByText(/play with the detection engine/i)).not.toBeInTheDocument();
 });

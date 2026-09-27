@@ -1,7 +1,6 @@
-import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
+import { BrowserRouter as Router, Navigate, Route, Routes } from "react-router-dom";
 import HomePage from "./component/page/home/home_page";
-import RealFaceDetection from "./component/page/face_detection/face_detection";
-import ImageInput from "./component/page/image_input/image_input";
+import FunGame from "./component/page/fun_game/fun_game";
 import LoginPage from "./component/page/login/login_page";
 import SuperAdminDashboard from "./component/page/dashboard/super_admin_dashboard";
 import CreateStation from "./component/page/stations/create_station";
@@ -22,8 +21,15 @@ function App() {
           <Routes>
             <Route exact path="/" element={<HomePage />} />
             <Route exact path="/login" element={<LoginPage />} />
-            <Route exact path="/face-detection" element={<RealFaceDetection />} />
-            <Route exact path="/input-image" element={<ImageInput />} />
+            <Route
+              exact
+              path="/fun-game"
+              element={
+                <ProtectedRoute roles={["super_admin", "admin", "user"]}>
+                  <FunGame />
+                </ProtectedRoute>
+              }
+            />
 
             {/* Admin portal — super_admin only */}
             <Route
@@ -109,6 +115,7 @@ function App() {
                 </ProtectedRoute>
               }
             />
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Router>
       </AuthProvider>

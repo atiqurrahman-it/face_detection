@@ -1,7 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import Webcam from "react-webcam";
-import Background from "../../backgorund/backgorun";
-import Nav from "../../navbar/navbar";
 import EmotionBreakdown from "../../common/EmotionBreakdown";
 import FaceOverlay from "../../common/FaceOverlay";
 
@@ -82,11 +80,7 @@ const RealFaceDetection = () => {
   }, [detect]);
 
   return (
-    <div className="relative min-h-screen w-full overflow-hidden bg-slate-50 transition-colors duration-300 dark:bg-slate-950">
-      <Background />
-      <div className="relative z-10">
-        <Nav />
-        <main className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 pb-16 pt-10 xl:flex-row xl:items-start">
+    <main className="mx-auto flex w-full max-w-6xl flex-col gap-8 xl:flex-row xl:items-start">
           <div className="w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-lg transition-colors dark:border-slate-800 dark:bg-slate-900 xl:max-w-xl xl:shrink-0">
             <div className="flex items-center justify-between border-b border-slate-100 px-5 py-3 dark:border-slate-800">
               <h2 className="font-semibold text-slate-800 dark:text-white">
@@ -157,9 +151,7 @@ const RealFaceDetection = () => {
               </div>
             )}
           </div>
-        </main>
-      </div>
-    </div>
+    </main>
   );
 };
 

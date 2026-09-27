@@ -57,11 +57,8 @@ const Nav = () => {
           <NavLink to="/" end className={navLinkClasses}>
             Home
           </NavLink>
-          <NavLink to="/face-detection" className={navLinkClasses}>
-            Face Detection
-          </NavLink>
-          <NavLink to="/input-image" className={navLinkClasses}>
-            Image Input
+          <NavLink to="/login" className={navLinkClasses}>
+            Sign In
           </NavLink>
         </div>
 
