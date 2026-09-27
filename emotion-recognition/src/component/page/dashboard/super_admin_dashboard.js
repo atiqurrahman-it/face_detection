@@ -9,8 +9,8 @@ export default function SuperAdminDashboard() {
   const [stationCount, setStationCount] = useState(0);
 
   useEffect(() => {
-    apiFetch("/stations", { token })
-      .then((stations) => setStationCount(stations.length))
+    apiFetch("/stations?limit=1", { token })
+      .then((response) => setStationCount(response.pagination.total))
       .catch(() => {});
   }, [token]);
 

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { apiFetch } from "../../../api/client";
 import { useAuth } from "../../../context/AuthContext";
 import { BD_DIVISIONS, districtsFor, thanasFor } from "../../../data/bd_geo";
@@ -28,6 +28,8 @@ const inputClasses =
 export default function CreateStation() {
   const { token } = useAuth();
   const [stations, setStations] = useState([]);
+  const [pagination, setPagination] = useState({ total: 0, page: 1, limit: 10, totalPages: 1 });
+  const [totalStationsCount, setTotalStationsCount] = useState(0);
   const [isModalOpen, setModalOpen] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [error, setError] = useState(null);
@@ -41,34 +43,38 @@ export default function CreateStation() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState("10");
 
+  const fetchStations = useCallback(() => {
+    const params = new URLSearchParams();
+    params.set("page", String(currentPage));
+    params.set("limit", pageSize);
+    if (filterDivision) params.set("division", filterDivision);
+    if (filterDistrict) params.set("district", filterDistrict);
+    if (filterThana) params.set("thana", filterThana);
+    if (filterName) params.set("name", filterName);
+    if (filterCode) params.set("code", filterCode);
+
+    return apiFetch(`/stations?${params.toString()}`, { token })
+      .then((response) => {
+        setStations(response.data);
+        setPagination(response.pagination);
+      })
+      .catch((err) => setError(err.message));
+  }, [token, currentPage, pageSize, filterDivision, filterDistrict, filterThana, filterName, filterCode]);
+
   useEffect(() => {
-    apiFetch("/stations", { token }).then(setStations).catch((err) => setError(err.message));
+    fetchStations();
+  }, [fetchStations]);
+
+  useEffect(() => {
+    apiFetch("/stations?limit=1", { token })
+      .then((response) => setTotalStationsCount(response.pagination.total))
+      .catch(() => {});
   }, [token]);
 
   const formDistrictOptions = useMemo(() => districtsFor(form.division), [form.division]);
   const formThanaOptions = useMemo(() => thanasFor(form.division, form.district), [form.division, form.district]);
   const filterDistrictOptions = useMemo(() => districtsFor(filterDivision), [filterDivision]);
   const filterThanaOptions = useMemo(() => thanasFor(filterDivision, filterDistrict), [filterDivision, filterDistrict]);
-
-  const filteredStations = stations.filter(
-    (s) =>
-      (!filterDivision || s.division === filterDivision) &&
-      (!filterDistrict || s.district === filterDistrict) &&
-      (!filterThana || s.thana === filterThana) &&
-      (!filterName || s.name.toLowerCase().includes(filterName.toLowerCase())) &&
-      (!filterCode || s.code.toLowerCase().includes(filterCode.toLowerCase()))
-  );
-
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [filterDivision, filterDistrict, filterThana, filterName, filterCode, pageSize]);
-
-  const totalItems = filteredStations.length;
-  const totalPages = Math.max(1, Math.ceil(totalItems / Number(pageSize)));
-  const paginatedStations = filteredStations.slice(
-    (currentPage - 1) * Number(pageSize),
-    currentPage * Number(pageSize)
-  );
 
   function updateField(field) {
     return (e) => {
@@ -92,10 +98,11 @@ export default function CreateStation() {
     e.preventDefault();
     setError(null);
     try {
-      const created = await apiFetch("/stations", { method: "POST", body: form, token });
-      setStations((prev) => [...prev, created]);
+      await apiFetch("/stations", { method: "POST", body: form, token });
       setForm(emptyForm);
       setModalOpen(false);
+      setTotalStationsCount((count) => count + 1);
+      fetchStations();
     } catch (err) {
       setError(err.message);
     }
@@ -105,7 +112,7 @@ export default function CreateStation() {
     <AdminLayout title="Create Station">
       <div className="space-y-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
-          <StatCard label="Total Stations" value={stations.length} />
+          <StatCard label="Total Stations" value={totalStationsCount} />
           <Button type="button" onClick={openModal}>
             + Create Station
           </Button>
@@ -123,6 +130,7 @@ export default function CreateStation() {
                   setFilterDivision(e.target.value);
                   setFilterDistrict("");
                   setFilterThana("");
+                  setCurrentPage(1);
                 }}
                 placeholder="All divisions"
                 className={inputClasses}
@@ -136,6 +144,7 @@ export default function CreateStation() {
                 onChange={(e) => {
                   setFilterDistrict(e.target.value);
                   setFilterThana("");
+                  setCurrentPage(1);
                 }}
                 disabled={!filterDivision}
                 placeholder="All districts"
@@ -147,7 +156,10 @@ export default function CreateStation() {
                 id="filter_thana"
                 options={filterThanaOptions}
                 value={filterThana}
-                onChange={(e) => setFilterThana(e.target.value)}
+                onChange={(e) => {
+                  setFilterThana(e.target.value);
+                  setCurrentPage(1);
+                }}
                 disabled={!filterDistrict}
                 placeholder="All thanas"
                 className={inputClasses}
@@ -158,7 +170,10 @@ export default function CreateStation() {
                 id="filter_name"
                 placeholder="Search station name"
                 value={filterName}
-                onChange={(e) => setFilterName(e.target.value)}
+                onChange={(e) => {
+                  setFilterName(e.target.value);
+                  setCurrentPage(1);
+                }}
                 className={inputClasses}
               />
             </FormField>
@@ -167,7 +182,10 @@ export default function CreateStation() {
                 id="filter_code"
                 placeholder="Search station code"
                 value={filterCode}
-                onChange={(e) => setFilterCode(e.target.value)}
+                onChange={(e) => {
+                  setFilterCode(e.target.value);
+                  setCurrentPage(1);
+                }}
                 className={inputClasses}
               />
             </FormField>
@@ -182,25 +200,29 @@ export default function CreateStation() {
             </p>
           )}
           <ul className="divide-y divide-slate-200 dark:divide-slate-800">
-            {paginatedStations.map((s) => (
+            {stations.map((s) => (
               <li key={s.id} className="py-2 text-sm text-slate-700 dark:text-slate-300">
                 <span className="font-medium text-slate-900 dark:text-white">{s.name}</span> — {s.thana},{" "}
                 {s.district}, {s.division} ({s.code})
               </li>
             ))}
-            {totalItems === 0 && (
+            {pagination.total === 0 && (
               <li className="py-2 text-sm text-slate-500 dark:text-slate-400">No stations match this filter.</li>
             )}
           </ul>
 
-          {totalItems > 0 && (
+          {pagination.total > 0 && (
             <div className="mt-4">
               <Pagination
-                currentPage={currentPage}
-                totalPages={totalPages}
+                currentPage={pagination.page}
+                totalPages={pagination.totalPages}
                 onPageChange={setCurrentPage}
                 pageSize={pageSize}
-                onPageSizeChange={setPageSize}
+                totalItems={pagination.total}
+                onPageSizeChange={(value) => {
+                  setPageSize(value);
+                  setCurrentPage(1);
+                }}
               />
             </div>
           )}

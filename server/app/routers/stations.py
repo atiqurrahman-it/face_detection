@@ -1,10 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from typing import Optional
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from ..database import get_db
 from ..deps import require_roles
 from ..models import Role, Station, User
-from ..schemas import StationCreate, StationOut, StationUserCreate, UserOut
+from ..schemas import StationCreate, StationListResponse, StationOut, StationUserCreate, UserOut
 from ..security import hash_password
 
 router = APIRouter(prefix="/stations", tags=["stations"])
@@ -51,12 +53,39 @@ def create_station(
     return station
 
 
-@router.get("", response_model=list[StationOut])
+@router.get("", response_model=StationListResponse)
 def list_stations(
+    page: int = Query(1, ge=1),
+    limit: int = Query(20, ge=1, le=100),
+    division: Optional[str] = None,
+    district: Optional[str] = None,
+    thana: Optional[str] = None,
+    name: Optional[str] = None,
+    code: Optional[str] = None,
     db: Session = Depends(get_db),
     _: User = Depends(require_roles(Role.SUPER_ADMIN, Role.ADMIN, Role.USER)),
 ):
-    return db.query(Station).all()
+    query = db.query(Station)
+    if division:
+        query = query.filter(Station.division == division)
+    if district:
+        query = query.filter(Station.district == district)
+    if thana:
+        query = query.filter(Station.thana == thana)
+    if name:
+        query = query.filter(Station.name.ilike(f"%{name}%"))
+    if code:
+        query = query.filter(Station.code.ilike(f"%{code}%"))
+
+    total = query.count()
+    total_pages = max(1, -(-total // limit))
+    stations = query.order_by(Station.id).offset((page - 1) * limit).limit(limit).all()
+
+    return {
+        "success": True,
+        "data": stations,
+        "pagination": {"total": total, "page": page, "limit": limit, "totalPages": total_pages},
+    }
 
 
 @router.post("/{station_id}/users", response_model=UserOut, status_code=status.HTTP_201_CREATED)

@@ -16,27 +16,72 @@ function renderWithAuth(ui) {
   );
 }
 
+/**
+ * Fakes the `/stations` API: GET applies the same query params the backend
+ * supports (page, limit, division, district, thana, name, code) and returns
+ * the { success, data, pagination } envelope; POST appends a station (or
+ * rejects a duplicate code), mirroring the real endpoint's contract.
+ */
+function mockStationsApi(initialStations) {
+  const stations = [...initialStations];
+  let nextId = stations.reduce((max, s) => Math.max(max, s.id), 0) + 1;
+
+  global.fetch.mockImplementation(async (url, options = {}) => {
+    const method = options.method || "GET";
+    const parsed = new URL(url, "http://localhost");
+
+    if (method === "POST" && parsed.pathname === "/stations") {
+      const body = JSON.parse(options.body);
+      if (stations.some((s) => s.code === body.code)) {
+        return { ok: false, json: async () => ({ detail: "Station code already exists" }) };
+      }
+      const created = { id: nextId++, name: body.name, division: body.division, district: body.district, thana: body.thana, code: body.code };
+      stations.push(created);
+      return { ok: true, json: async () => created };
+    }
+
+    const query = parsed.searchParams;
+    const page = Number(query.get("page") || 1);
+    const limit = Number(query.get("limit") || 20);
+    const division = query.get("division");
+    const district = query.get("district");
+    const thana = query.get("thana");
+    const name = query.get("name");
+    const code = query.get("code");
+
+    let filtered = stations;
+    if (division) filtered = filtered.filter((s) => s.division === division);
+    if (district) filtered = filtered.filter((s) => s.district === district);
+    if (thana) filtered = filtered.filter((s) => s.thana === thana);
+    if (name) filtered = filtered.filter((s) => s.name.toLowerCase().includes(name.toLowerCase()));
+    if (code) filtered = filtered.filter((s) => s.code.toLowerCase().includes(code.toLowerCase()));
+
+    const total = filtered.length;
+    const totalPages = Math.max(1, Math.ceil(total / limit));
+    const data = filtered.slice((page - 1) * limit, page * limit);
+
+    return { ok: true, json: async () => ({ success: true, data, pagination: { total, page, limit, totalPages } }) };
+  });
+}
+
 beforeEach(() => {
   global.fetch = jest.fn();
 });
 
 test("renders inside AdminLayout with its own page title", async () => {
-  global.fetch.mockResolvedValueOnce({ ok: true, json: async () => [] });
+  mockStationsApi([]);
 
   renderWithAuth(<CreateStation />);
 
   expect(screen.getByRole("heading", { name: "Create Station" })).toBeInTheDocument();
-  await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(1));
+  await waitFor(() => expect(global.fetch).toHaveBeenCalled());
 });
 
 test("shows the total station count", async () => {
-  global.fetch.mockResolvedValueOnce({
-    ok: true,
-    json: async () => [
-      { id: 1, name: "Dhanmondi Thana", division: "Dhaka", district: "Dhaka", thana: "Dhanmondi", code: "DHK-01" },
-      { id: 2, name: "Gulshan Thana", division: "Dhaka", district: "Dhaka", thana: "Gulshan", code: "DHK-02" },
-    ],
-  });
+  mockStationsApi([
+    { id: 1, name: "Dhanmondi Thana", division: "Dhaka", district: "Dhaka", thana: "Dhanmondi", code: "DHK-01" },
+    { id: 2, name: "Gulshan Thana", division: "Dhaka", district: "Dhaka", thana: "Gulshan", code: "DHK-02" },
+  ]);
 
   renderWithAuth(<CreateStation />);
 
@@ -44,10 +89,7 @@ test("shows the total station count", async () => {
 });
 
 test("lists existing stations on load", async () => {
-  global.fetch.mockResolvedValueOnce({
-    ok: true,
-    json: async () => [{ id: 1, name: "Dhanmondi Thana", division: "Dhaka", district: "Dhaka", thana: "Dhanmondi", code: "DHK-01" }],
-  });
+  mockStationsApi([{ id: 1, name: "Dhanmondi Thana", division: "Dhaka", district: "Dhaka", thana: "Dhanmondi", code: "DHK-01" }]);
 
   renderWithAuth(<CreateStation />);
 
@@ -55,13 +97,10 @@ test("lists existing stations on load", async () => {
 });
 
 test("filters the station list by division, district and thana", async () => {
-  global.fetch.mockResolvedValueOnce({
-    ok: true,
-    json: async () => [
-      { id: 1, name: "Dhanmondi Thana", division: "Dhaka", district: "Dhaka", thana: "Dhanmondi", code: "DHK-01" },
-      { id: 2, name: "Kotwali Thana", division: "Chattogram", district: "Chattogram", thana: "Kotwali", code: "CTG-01" },
-    ],
-  });
+  mockStationsApi([
+    { id: 1, name: "Dhanmondi Thana", division: "Dhaka", district: "Dhaka", thana: "Dhanmondi", code: "DHK-01" },
+    { id: 2, name: "Kotwali Thana", division: "Chattogram", district: "Chattogram", thana: "Kotwali", code: "CTG-01" },
+  ]);
 
   renderWithAuth(<CreateStation />);
   await screen.findByText(/Dhanmondi Thana/);
@@ -69,7 +108,7 @@ test("filters the station list by division, district and thana", async () => {
   fireEvent.click(screen.getByLabelText("Division"));
   fireEvent.mouseDown(screen.getByRole("option", { name: "Chattogram" }));
 
-  expect(screen.queryByText(/Dhanmondi Thana/)).not.toBeInTheDocument();
+  await waitFor(() => expect(screen.queryByText(/Dhanmondi Thana/)).not.toBeInTheDocument());
   expect(screen.getByText(/Kotwali Thana/)).toBeInTheDocument();
 });
 
@@ -82,7 +121,7 @@ test("paginates the station list once it exceeds the page size", async () => {
     thana: `Thana ${i + 1}`,
     code: `DHK-${i + 1}`,
   }));
-  global.fetch.mockResolvedValueOnce({ ok: true, json: async () => stations });
+  mockStationsApi(stations);
 
   renderWithAuth(<CreateStation />);
   await screen.findByText(/Station 1\b/);
@@ -96,11 +135,30 @@ test("paginates the station list once it exceeds the page size", async () => {
   expect(screen.queryByText(/Station 1\b/)).not.toBeInTheDocument();
 });
 
-test("the create-station form is inside a modal, hidden until opened", async () => {
-  global.fetch.mockResolvedValueOnce({ ok: true, json: async () => [] });
+test("only offers per-page options that make sense for the current result count", async () => {
+  mockStationsApi([
+    { id: 1, name: "Dhanmondi Thana", division: "Dhaka", district: "Dhaka", thana: "Dhanmondi", code: "DHK-01" },
+    { id: 2, name: "Gulshan Thana", division: "Dhaka", district: "Dhaka", thana: "Gulshan", code: "DHK-02" },
+  ]);
 
   renderWithAuth(<CreateStation />);
-  await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(1));
+  await screen.findByText(/Dhanmondi Thana/);
+
+  const perPageSelect = screen.getByRole("combobox", { name: /per page/i });
+  const optionLabels = within(perPageSelect)
+    .getAllByRole("option")
+    .map((option) => option.textContent);
+
+  // Only 2 stations exist, so a page size of "5" already fits everyone —
+  // "10", "20" and "50" would be pointless choices.
+  expect(optionLabels).toEqual(["5"]);
+});
+
+test("the create-station form is inside a modal, hidden until opened", async () => {
+  mockStationsApi([]);
+
+  renderWithAuth(<CreateStation />);
+  await waitFor(() => expect(global.fetch).toHaveBeenCalled());
 
   expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
 
@@ -112,15 +170,10 @@ test("the create-station form is inside a modal, hidden until opened", async () 
 });
 
 test("submitting the modal form posts and appends the new station to the list", async () => {
-  global.fetch
-    .mockResolvedValueOnce({ ok: true, json: async () => [] })
-    .mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ id: 2, name: "Gulshan Thana", division: "Dhaka", district: "Dhaka", thana: "Gulshan", code: "DHK-02" }),
-    });
+  mockStationsApi([]);
 
   renderWithAuth(<CreateStation />);
-  await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(1));
+  await waitFor(() => expect(global.fetch).toHaveBeenCalled());
 
   fireEvent.click(screen.getByRole("button", { name: /\+ create station/i }));
   const dialog = screen.getByRole("dialog");
@@ -143,17 +196,16 @@ test("submitting the modal form posts and appends the new station to the list", 
 });
 
 test("shows an error message inside the modal when station creation fails", async () => {
-  global.fetch
-    .mockResolvedValueOnce({ ok: true, json: async () => [] })
-    .mockResolvedValueOnce({ ok: false, json: async () => ({ detail: "Station code already exists" }) });
+  mockStationsApi([{ id: 1, name: "Existing Thana", division: "Dhaka", district: "Dhaka", thana: "Existing", code: "DHK-02" }]);
 
   renderWithAuth(<CreateStation />);
-  await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(1));
+  await waitFor(() => expect(global.fetch).toHaveBeenCalled());
 
   fireEvent.click(screen.getByRole("button", { name: /\+ create station/i }));
   const dialog = screen.getByRole("dialog");
 
   fireEvent.change(within(dialog).getByLabelText("Station name"), { target: { value: "Gulshan Thana" } });
+  fireEvent.change(within(dialog).getByLabelText(/station code/i), { target: { value: "DHK-02" } });
   fireEvent.click(within(dialog).getByRole("button", { name: /^create station$/i }));
 
   expect(await within(dialog).findByRole("alert")).toBeInTheDocument();

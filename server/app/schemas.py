@@ -54,6 +54,19 @@ class StationOut(BaseModel):
         orm_mode = True
 
 
+class PaginationMeta(BaseModel):
+    total: int
+    page: int
+    limit: int
+    totalPages: int
+
+
+class StationListResponse(BaseModel):
+    success: bool = True
+    data: List[StationOut]
+    pagination: PaginationMeta
+
+
 class StationUserCreate(BaseModel):
     name: Name
     username: Name

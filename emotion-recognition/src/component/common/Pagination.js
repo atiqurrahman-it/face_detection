@@ -13,11 +13,18 @@ export default function Pagination({
   pageSize,
   onPageSizeChange,
   pageSizeOptions = ["5", "10", "20", "50"],
+  totalItems,
 }) {
   if (totalPages <= 1 && !onPageSizeChange) return null;
 
   const startPage = Math.max(1, currentPage - Math.floor(PAGE_LINKS_TO_SHOW / 2));
   const endPage = Math.min(totalPages, startPage + PAGE_LINKS_TO_SHOW - 1);
+
+  // Only offer page sizes up to the first one that would fit everything on one page.
+  const total = totalItems ?? Infinity;
+  const lastUsefulIndex = pageSizeOptions.findIndex((option) => Number(option) >= total);
+  const visiblePageSizeOptions =
+    lastUsefulIndex === -1 ? pageSizeOptions : pageSizeOptions.slice(0, lastUsefulIndex + 1);
 
   function goTo(page) {
     if (page < 1 || page > totalPages || page === currentPage) return;
@@ -94,7 +101,7 @@ export default function Pagination({
             onChange={(e) => onPageSizeChange(e.target.value)}
             className="rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm text-slate-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
           >
-            {pageSizeOptions.map((option) => (
+            {visiblePageSizeOptions.map((option) => (
               <option key={option} value={option}>
                 {option}
               </option>

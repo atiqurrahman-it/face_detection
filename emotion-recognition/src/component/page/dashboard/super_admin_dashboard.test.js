@@ -21,7 +21,10 @@ beforeEach(() => {
 });
 
 test("renders inside AdminLayout with its sidebar navigation", async () => {
-  global.fetch.mockResolvedValueOnce({ ok: true, json: async () => [] });
+  global.fetch.mockResolvedValueOnce({
+    ok: true,
+    json: async () => ({ success: true, data: [], pagination: { total: 0, page: 1, limit: 1, totalPages: 1 } }),
+  });
 
   renderWithAuth(<SuperAdminDashboard />);
 
@@ -32,10 +35,11 @@ test("renders inside AdminLayout with its sidebar navigation", async () => {
 test("shows the station count from the API", async () => {
   global.fetch.mockResolvedValueOnce({
     ok: true,
-    json: async () => [
-      { id: 1, name: "Dhanmondi Thana", district: "Dhaka", code: "DHK-01" },
-      { id: 2, name: "Gulshan Thana", district: "Dhaka", code: "DHK-02" },
-    ],
+    json: async () => ({
+      success: true,
+      data: [{ id: 1, name: "Dhanmondi Thana", district: "Dhaka", code: "DHK-01" }],
+      pagination: { total: 2, page: 1, limit: 1, totalPages: 2 },
+    }),
   });
 
   renderWithAuth(<SuperAdminDashboard />);
@@ -44,7 +48,10 @@ test("shows the station count from the API", async () => {
 });
 
 test("sidebar links to the Create Station page instead of an inline form", async () => {
-  global.fetch.mockResolvedValueOnce({ ok: true, json: async () => [] });
+  global.fetch.mockResolvedValueOnce({
+    ok: true,
+    json: async () => ({ success: true, data: [], pagination: { total: 0, page: 1, limit: 1, totalPages: 1 } }),
+  });
 
   renderWithAuth(<SuperAdminDashboard />);
 

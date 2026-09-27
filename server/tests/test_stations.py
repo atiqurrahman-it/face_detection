@@ -178,4 +178,29 @@ def test_super_admin_lists_all_stations(client, db_session):
     response = client.get("/stations", headers=_auth(token))
 
     assert response.status_code == 200
-    assert len(response.json()) == 1
+    body = response.json()
+    assert body["success"] is True
+    assert len(body["data"]) == 1
+    assert body["pagination"] == {"total": 1, "page": 1, "limit": 20, "totalPages": 1}
+
+
+def test_stations_list_is_paginated_and_filterable(client, db_session):
+    _make_user(db_session, "root", "s3cret", Role.SUPER_ADMIN)
+    token = _login(client, "root", "s3cret")
+    for i in range(3):
+        _make_station(db_session, code=f"DHK-0{i + 1}")
+    other = Station(name="Kotwali Thana", division="Chattogram", district="Chattogram", thana="Kotwali", code="CTG-01")
+    db_session.add(other)
+    db_session.commit()
+
+    response = client.get("/stations", params={"page": 1, "limit": 2}, headers=_auth(token))
+    body = response.json()
+    assert response.status_code == 200
+    assert len(body["data"]) == 2
+    assert body["pagination"] == {"total": 4, "page": 1, "limit": 2, "totalPages": 2}
+
+    response = client.get("/stations", params={"division": "Chattogram"}, headers=_auth(token))
+    body = response.json()
+    assert len(body["data"]) == 1
+    assert body["data"][0]["code"] == "CTG-01"
+    assert body["pagination"]["total"] == 1
