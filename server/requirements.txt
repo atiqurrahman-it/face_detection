@@ -34,7 +34,7 @@ oauthlib==3.2.0
 opencv-contrib-python==4.5.5.64
 opencv-python==4.5.5.64
 opt-einsum==3.3.0
-packaging==21.3
+packaging==23.2
 pandas==1.4.2
 Pillow==9.1.0
 protobuf==3.20.0
@@ -60,7 +60,7 @@ tensorflow-io-gcs-filesystem==0.24.0
 termcolor==1.1.0
 tf-estimator-nightly==2.8.0.dev2021122109
 tqdm==4.64.0
-typing-extensions==4.1.1
+typing-extensions==4.6.3
 urllib3==1.26.9
 uvicorn==0.17.6
 watchgod==0.8.2
