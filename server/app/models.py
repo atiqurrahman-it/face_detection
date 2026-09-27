@@ -18,6 +18,7 @@ class Station(Base):
 
     id = Column(Integer, primary_key=True)
     name = Column(String, nullable=False)
+    division = Column(String, nullable=False)
     district = Column(String, nullable=False)
     code = Column(String, unique=True, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)

@@ -32,6 +32,7 @@ def test_super_admin_can_create_station_with_first_admin(client, db_session):
         "/stations",
         json={
             "name": "Dhanmondi Thana",
+            "division": "Dhaka",
             "district": "Dhaka",
             "code": "DHK-01",
             "admin_name": "Station Admin",
@@ -57,6 +58,7 @@ def test_non_super_admin_cannot_create_station(client, db_session):
         "/stations",
         json={
             "name": "Dhanmondi Thana",
+            "division": "Dhaka",
             "district": "Dhaka",
             "code": "DHK-01",
             "admin_name": "X",
@@ -74,6 +76,7 @@ def test_duplicate_station_code_returns_400(client, db_session):
     token = _login(client, "root", "s3cret")
     payload = {
         "name": "Dhanmondi Thana",
+        "division": "Dhaka",
         "district": "Dhaka",
         "code": "DHK-01",
         "admin_name": "A",
@@ -96,6 +99,7 @@ def test_create_station_rejects_blank_admin_username(client, db_session):
         "/stations",
         json={
             "name": "Dhanmondi Thana",
+            "division": "Dhaka",
             "district": "Dhaka",
             "code": "DHK-01",
             "admin_name": "A",
@@ -116,6 +120,7 @@ def test_create_station_rejects_short_admin_password(client, db_session):
         "/stations",
         json={
             "name": "Dhanmondi Thana",
+            "division": "Dhaka",
             "district": "Dhaka",
             "code": "DHK-01",
             "admin_name": "A",
@@ -140,7 +145,7 @@ def test_any_authenticated_role_can_list_stations(client, db_session):
 
 
 def _make_station(db_session, code="DHK-01"):
-    station = Station(name="Dhanmondi Thana", district="Dhaka", code=code)
+    station = Station(name="Dhanmondi Thana", division="Dhaka", district="Dhaka", code=code)
     db_session.add(station)
     db_session.commit()
     db_session.refresh(station)
@@ -154,6 +159,7 @@ def test_super_admin_lists_all_stations(client, db_session):
         "/stations",
         json={
             "name": "Dhanmondi Thana",
+            "division": "Dhaka",
             "district": "Dhaka",
             "code": "DHK-01",
             "admin_name": "A",

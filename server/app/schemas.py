@@ -33,6 +33,7 @@ class UserOut(BaseModel):
 
 class StationCreate(BaseModel):
     name: Name
+    division: Name
     district: Name
     code: Name
     admin_name: Name
@@ -43,6 +44,7 @@ class StationCreate(BaseModel):
 class StationOut(BaseModel):
     id: int
     name: str
+    division: str
     district: str
     code: str
 
