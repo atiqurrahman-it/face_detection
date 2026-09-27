@@ -9,6 +9,7 @@ import {
   LogoutIcon,
   MoonIcon,
   PlusIcon,
+  PuzzlePieceIcon,
   SearchIcon,
   SunIcon,
   UsersIcon,
@@ -23,6 +24,7 @@ const NAV_ITEMS = [
   { to: "/admin/criminals/new", label: "Add Criminal", icon: PlusIcon, roles: ["super_admin"] },
   { to: "/station/criminals/new", label: "Add Criminal", icon: PlusIcon, roles: ["admin"] },
   { to: "/station/users", label: "User Management", icon: UsersIcon, roles: ["admin"] },
+  { to: "/fun-game", label: "Fun Game", icon: PuzzlePieceIcon, roles: ["super_admin", "admin", "user"] },
 ];
 
 const linkClasses = ({ isActive }) =>

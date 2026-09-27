@@ -78,3 +78,18 @@ test("renders the page title and children", () => {
   expect(screen.getByRole("heading", { name: "Test Page" })).toBeInTheDocument();
   expect(screen.getByText("page content")).toBeInTheDocument();
 });
+
+test("station user sees the Fun Game link", () => {
+  renderLayout({ id: 1, role: "user", username: "officer1", station_id: 1 });
+  expect(screen.getByRole("link", { name: /fun game/i })).toBeInTheDocument();
+});
+
+test("station admin sees the Fun Game link", () => {
+  renderLayout({ id: 2, role: "admin", username: "dhk01admin", station_id: 1 });
+  expect(screen.getByRole("link", { name: /fun game/i })).toBeInTheDocument();
+});
+
+test("super admin with no station still sees the Fun Game link", () => {
+  renderLayout({ id: 3, role: "super_admin", username: "root", station_id: null });
+  expect(screen.getByRole("link", { name: /fun game/i })).toBeInTheDocument();
+});
