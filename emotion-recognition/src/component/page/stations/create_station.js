@@ -203,7 +203,7 @@ export default function CreateStation() {
           <ul className="divide-y divide-slate-200 dark:divide-slate-800">
             {stations.map((s) => (
               <li key={s.id} className="flex items-center justify-between gap-4 py-2 text-sm text-slate-700 dark:text-slate-300">
-                <Link to={`/stations/${s.id}`} className="hover:underline">
+                <Link to={`/admin/stations/${s.id}`} className="hover:underline">
                   <span className="font-medium text-emerald-600 dark:text-emerald-400">{s.name}</span> — {s.thana},{" "}
                   {s.district}, {s.division} ({s.code})
                 </Link>

@@ -16,11 +16,13 @@ import {
 
 const NAV_ITEMS = [
   { to: "/admin", label: "Dashboard", icon: DashboardIcon, roles: ["super_admin"] },
-  { to: "/dashboard", label: "Dashboard", icon: DashboardIcon, roles: ["admin", "user"] },
-  { to: "/stations/new", label: "Create Station", icon: PlusIcon, roles: ["super_admin"] },
-  { to: "/criminals", label: "Criminal Search", icon: SearchIcon, roles: ["super_admin", "admin", "user"] },
-  { to: "/criminals/new", label: "Add Criminal", icon: PlusIcon, roles: ["super_admin", "admin", "user"] },
-  { to: "/users", label: "User Management", icon: UsersIcon, roles: ["admin"] },
+  { to: "/station", label: "Dashboard", icon: DashboardIcon, roles: ["admin", "user"] },
+  { to: "/admin/stations/new", label: "Create Station", icon: PlusIcon, roles: ["super_admin"] },
+  { to: "/admin/criminals", label: "Criminal Search", icon: SearchIcon, roles: ["super_admin"] },
+  { to: "/station/criminals", label: "Criminal Search", icon: SearchIcon, roles: ["admin", "user"] },
+  { to: "/admin/criminals/new", label: "Add Criminal", icon: PlusIcon, roles: ["super_admin"] },
+  { to: "/station/criminals/new", label: "Add Criminal", icon: PlusIcon, roles: ["admin"] },
+  { to: "/station/users", label: "User Management", icon: UsersIcon, roles: ["admin"] },
 ];
 
 const linkClasses = ({ isActive }) =>

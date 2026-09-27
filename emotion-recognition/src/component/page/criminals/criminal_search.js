@@ -54,6 +54,7 @@ function Thumbnail({ criminal }) {
 export default function CriminalSearch() {
   const { token, user } = useAuth();
   const canDelete = user.role === "super_admin" || user.role === "admin";
+  const canAddCriminal = user.role === "super_admin" || user.role === "admin";
   const isSuperAdmin = user.role === "super_admin";
 
   const [criminals, setCriminals] = useState([]);
@@ -340,11 +341,13 @@ export default function CriminalSearch() {
   return (
     <AdminLayout title="Criminal Search">
       <div className="space-y-6">
-        <div className="flex items-center justify-end">
-          <Link to="/criminals/new">
-            <Button type="button">+ Add Criminal</Button>
-          </Link>
-        </div>
+        {canAddCriminal && (
+          <div className="flex items-center justify-end">
+            <Link to={isSuperAdmin ? "/admin/criminals/new" : "/station/criminals/new"}>
+              <Button type="button">+ Add Criminal</Button>
+            </Link>
+          </div>
+        )}
 
         <Card>
           <h2 className="mb-4 text-lg font-semibold text-slate-900 dark:text-white">Search by photo</h2>

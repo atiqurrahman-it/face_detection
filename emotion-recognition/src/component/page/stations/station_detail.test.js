@@ -8,10 +8,10 @@ function renderWithAuth(user) {
   return render(
     <AuthContext.Provider value={{ user, token: "abc123", loading: false, logout: jest.fn() }}>
       <ThemeContext.Provider value={{ theme: "light", toggleTheme: jest.fn() }}>
-        <MemoryRouter initialEntries={["/stations/5"]}>
+        <MemoryRouter initialEntries={["/admin/stations/5"]}>
           <Routes>
-            <Route path="/stations/:stationId" element={<StationDetail />} />
-            <Route path="/criminals/new" element={<div>Add Criminal Page</div>} />
+            <Route path="/admin/stations/:stationId" element={<StationDetail />} />
+            <Route path="/admin/criminals/new" element={<div>Add Criminal Page</div>} />
           </Routes>
         </MemoryRouter>
       </ThemeContext.Provider>

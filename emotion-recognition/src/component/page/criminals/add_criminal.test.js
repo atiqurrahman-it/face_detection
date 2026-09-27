@@ -4,15 +4,17 @@ import { AuthContext } from "../../../context/AuthContext";
 import { ThemeContext } from "../../../context/ThemeContext";
 import AddCriminal from "./add_criminal";
 
-function renderWithAuth(user, { initialEntry = "/criminals/new" } = {}) {
+function renderWithAuth(user, { initialEntry = "/station/criminals/new" } = {}) {
   return render(
     <AuthContext.Provider value={{ user, token: "abc123", loading: false, logout: jest.fn() }}>
       <ThemeContext.Provider value={{ theme: "light", toggleTheme: jest.fn() }}>
         <MemoryRouter initialEntries={[initialEntry]}>
           <Routes>
-            <Route path="/criminals/new" element={<AddCriminal />} />
-            <Route path="/criminals" element={<div>Criminal Search Page</div>} />
-            <Route path="/stations/:stationId" element={<div>Station Detail Page</div>} />
+            <Route path="/station/criminals/new" element={<AddCriminal />} />
+            <Route path="/admin/criminals/new" element={<AddCriminal />} />
+            <Route path="/station/criminals" element={<div>Criminal Search Page</div>} />
+            <Route path="/admin/criminals" element={<div>Criminal Search Page</div>} />
+            <Route path="/admin/stations/:stationId" element={<div>Station Detail Page</div>} />
           </Routes>
         </MemoryRouter>
       </ThemeContext.Provider>
@@ -71,7 +73,7 @@ beforeEach(() => {
 test("renders the sectioned form inside AdminLayout", async () => {
   mockCriminalsApi({});
 
-  renderWithAuth({ role: "user", username: "officer1", station_id: 1 });
+  renderWithAuth({ role: "admin", username: "officer1", station_id: 1 });
 
   expect(screen.getByRole("heading", { name: "Add Criminal" })).toBeInTheDocument();
   expect(screen.getByText("This criminal will be added under your station.")).toBeInTheDocument();
@@ -106,7 +108,7 @@ test("super admin picks a station via cascading division and district selects", 
 test("blocks submission without a front photo", async () => {
   mockCriminalsApi({});
 
-  renderWithAuth({ role: "user", username: "officer1", station_id: 1 });
+  renderWithAuth({ role: "admin", username: "officer1", station_id: 1 });
 
   fireEvent.change(screen.getByLabelText("Full name"), { target: { value: "John Doe" } });
   fireEvent.change(screen.getByLabelText("Gender"), { target: { value: "Male" } });
@@ -121,7 +123,7 @@ test("blocks submission without a front photo", async () => {
 test("submits a multipart request with the criminal payload and photo, then navigates to the search page", async () => {
   const requests = mockCriminalsApi({});
 
-  renderWithAuth({ role: "user", username: "officer1", station_id: 7 });
+  renderWithAuth({ role: "admin", username: "officer1", station_id: 7 });
 
   fireEvent.change(screen.getByLabelText("Full name"), { target: { value: "John Doe" } });
   fireEvent.change(screen.getByLabelText("Gender"), { target: { value: "Male" } });
@@ -145,7 +147,7 @@ test("skips division/district/station pickers and auto-assigns the station from 
 
   renderWithAuth(
     { role: "super_admin", username: "root", station_id: null },
-    { initialEntry: "/criminals/new?station_id=5" }
+    { initialEntry: "/admin/criminals/new?station_id=5" }
   );
 
   expect(await screen.findByText(/Gulshan Thana \(DHK-GUL-01\)/)).toBeInTheDocument();
@@ -170,7 +172,7 @@ test("skips division/district/station pickers and auto-assigns the station from 
 test("shows an error message when the backend rejects the submission", async () => {
   mockCriminalsApi({ createResult: { ok: false, detail: "Station not found" } });
 
-  renderWithAuth({ role: "user", username: "officer1", station_id: 1 });
+  renderWithAuth({ role: "admin", username: "officer1", station_id: 1 });
 
   fireEvent.change(screen.getByLabelText("Full name"), { target: { value: "John Doe" } });
   fireEvent.change(screen.getByLabelText("Gender"), { target: { value: "Male" } });

@@ -24,6 +24,8 @@ function App() {
             <Route exact path="/login" element={<LoginPage />} />
             <Route exact path="/face-detection" element={<RealFaceDetection />} />
             <Route exact path="/input-image" element={<ImageInput />} />
+
+            {/* Admin portal — super_admin only */}
             <Route
               exact
               path="/admin"
@@ -35,7 +37,7 @@ function App() {
             />
             <Route
               exact
-              path="/stations/new"
+              path="/admin/stations/new"
               element={
                 <ProtectedRoute roles={["super_admin"]}>
                   <CreateStation />
@@ -44,7 +46,7 @@ function App() {
             />
             <Route
               exact
-              path="/stations/:stationId"
+              path="/admin/stations/:stationId"
               element={
                 <ProtectedRoute roles={["super_admin"]}>
                   <StationDetail />
@@ -53,25 +55,27 @@ function App() {
             />
             <Route
               exact
-              path="/criminals"
+              path="/admin/criminals"
               element={
-                <ProtectedRoute roles={["super_admin", "admin", "user"]}>
+                <ProtectedRoute roles={["super_admin"]}>
                   <CriminalSearch />
                 </ProtectedRoute>
               }
             />
             <Route
               exact
-              path="/criminals/new"
+              path="/admin/criminals/new"
               element={
-                <ProtectedRoute roles={["super_admin", "admin", "user"]}>
+                <ProtectedRoute roles={["super_admin"]}>
                   <AddCriminal />
                 </ProtectedRoute>
               }
             />
+
+            {/* Station portal — station admin/user only */}
             <Route
               exact
-              path="/dashboard"
+              path="/station"
               element={
                 <ProtectedRoute roles={["admin", "user"]}>
                   <StationDashboard />
@@ -80,7 +84,25 @@ function App() {
             />
             <Route
               exact
-              path="/users"
+              path="/station/criminals"
+              element={
+                <ProtectedRoute roles={["admin", "user"]}>
+                  <CriminalSearch />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              exact
+              path="/station/criminals/new"
+              element={
+                <ProtectedRoute roles={["admin"]}>
+                  <AddCriminal />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              exact
+              path="/station/users"
               element={
                 <ProtectedRoute roles={["admin"]}>
                   <UserManagement />

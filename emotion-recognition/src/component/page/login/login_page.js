@@ -23,7 +23,7 @@ export default function LoginPage() {
     setSubmitting(true);
     try {
       const user = await login(username, password);
-      navigate(user.role === "super_admin" ? "/admin" : "/dashboard");
+      navigate(user.role === "super_admin" ? "/admin" : "/station");
     } catch (err) {
       setError(err.message);
     } finally {

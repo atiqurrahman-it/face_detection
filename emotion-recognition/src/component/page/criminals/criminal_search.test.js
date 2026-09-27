@@ -156,14 +156,17 @@ function jpegFile(name = "search.jpg") {
   return new File(["fake-bytes"], name, { type: "image/jpeg" });
 }
 
-test("renders inside AdminLayout with an Add Criminal link", async () => {
+test("admin sees an Add Criminal link but a station user does not", async () => {
   mockCriminalsApi({});
 
-  renderWithAuth(<CriminalSearch />, { role: "user", username: "officer1", station_id: 1 });
-
+  const { unmount } = renderWithAuth(<CriminalSearch />, { role: "admin", username: "dhk01admin", station_id: 1 });
   expect(screen.getByRole("heading", { name: "Criminal Search" })).toBeInTheDocument();
-  expect(screen.getByRole("link", { name: /^\+ add criminal$/i })).toHaveAttribute("href", "/criminals/new");
+  expect(screen.getByRole("link", { name: /^\+ add criminal$/i })).toHaveAttribute("href", "/station/criminals/new");
   await waitFor(() => expect(global.fetch).toHaveBeenCalled());
+  unmount();
+
+  renderWithAuth(<CriminalSearch />, { role: "user", username: "officer1", station_id: 1 });
+  expect(screen.queryByRole("link", { name: /^\+ add criminal$/i })).not.toBeInTheDocument();
 });
 
 test("lists criminals with their status", async () => {

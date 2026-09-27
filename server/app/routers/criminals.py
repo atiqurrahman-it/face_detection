@@ -65,7 +65,7 @@ async def create_criminal(
     left_photo: UploadFile = File(None),
     right_photo: UploadFile = File(None),
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_roles(Role.SUPER_ADMIN, Role.ADMIN, Role.USER)),
+    current_user: User = Depends(require_roles(Role.SUPER_ADMIN, Role.ADMIN)),
 ):
     data = _parse_payload(payload, CriminalCreate)
     _station_scope(data.station_id, current_user)

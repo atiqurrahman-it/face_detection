@@ -6,7 +6,9 @@ export default function ProtectedRoute({ roles, children }) {
 
   if (loading) return null;
   if (!user) return <Navigate to="/login" replace />;
-  if (roles && !roles.includes(user.role)) return <Navigate to="/dashboard" replace />;
+  if (roles && !roles.includes(user.role)) {
+    return <Navigate to={user.role === "super_admin" ? "/admin" : "/station"} replace />;
+  }
 
   return children;
 }

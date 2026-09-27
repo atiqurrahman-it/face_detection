@@ -51,10 +51,10 @@ def _front_photo():
     return {"front_photo": ("front.jpg", io.BytesIO(b"fake-jpeg-bytes"), "image/jpeg")}
 
 
-def test_station_user_can_create_criminal_with_front_photo(client, db_session):
+def test_admin_can_create_criminal_with_front_photo(client, db_session):
     station = _make_station(db_session)
-    _make_user(db_session, "officer1", "officerpass1", Role.USER, station_id=station.id)
-    token = _login(client, "officer1", "officerpass1")
+    _make_user(db_session, "dhk01admin", "adminpass1", Role.ADMIN, station_id=station.id)
+    token = _login(client, "dhk01admin", "adminpass1")
 
     response = client.post(
         "/criminals",
@@ -79,8 +79,8 @@ def test_station_user_can_create_criminal_with_front_photo(client, db_session):
 
 def test_create_criminal_requires_front_photo(client, db_session):
     station = _make_station(db_session)
-    _make_user(db_session, "officer1", "officerpass1", Role.USER, station_id=station.id)
-    token = _login(client, "officer1", "officerpass1")
+    _make_user(db_session, "dhk01admin", "adminpass1", Role.ADMIN, station_id=station.id)
+    token = _login(client, "dhk01admin", "adminpass1")
 
     response = client.post(
         "/criminals",
@@ -93,8 +93,8 @@ def test_create_criminal_requires_front_photo(client, db_session):
 
 def test_create_criminal_rejects_blank_full_name(client, db_session):
     station = _make_station(db_session)
-    _make_user(db_session, "officer1", "officerpass1", Role.USER, station_id=station.id)
-    token = _login(client, "officer1", "officerpass1")
+    _make_user(db_session, "dhk01admin", "adminpass1", Role.ADMIN, station_id=station.id)
+    token = _login(client, "dhk01admin", "adminpass1")
 
     response = client.post(
         "/criminals",
@@ -106,15 +106,30 @@ def test_create_criminal_rejects_blank_full_name(client, db_session):
     assert response.status_code == 422
 
 
-def test_station_user_cannot_create_criminal_for_other_station(client, db_session):
+def test_admin_cannot_create_criminal_for_other_station(client, db_session):
     station_a = _make_station(db_session, code="DHK-01")
     station_b = _make_station(db_session, code="DHK-02")
-    _make_user(db_session, "officer1", "officerpass1", Role.USER, station_id=station_a.id)
-    token = _login(client, "officer1", "officerpass1")
+    _make_user(db_session, "dhk01admin", "adminpass1", Role.ADMIN, station_id=station_a.id)
+    token = _login(client, "dhk01admin", "adminpass1")
 
     response = client.post(
         "/criminals",
         data={"payload": json.dumps(_base_payload(station_b.id))},
+        files=_front_photo(),
+        headers=_auth(token),
+    )
+
+    assert response.status_code == 403
+
+
+def test_station_user_cannot_create_criminal(client, db_session):
+    station = _make_station(db_session)
+    _make_user(db_session, "officer1", "officerpass1", Role.USER, station_id=station.id)
+    token = _login(client, "officer1", "officerpass1")
+
+    response = client.post(
+        "/criminals",
+        data={"payload": json.dumps(_base_payload(station.id))},
         files=_front_photo(),
         headers=_auth(token),
     )
@@ -151,15 +166,17 @@ def _create_criminal(client, token, station_id, **overrides):
 def test_search_returns_criminals_across_all_stations(client, db_session):
     station_a = _make_station(db_session, code="DHK-01")
     station_b = _make_station(db_session, code="DHK-02")
+    _make_user(db_session, "admin_a", "adminpass1", Role.ADMIN, station_id=station_a.id)
+    _make_user(db_session, "admin_b", "adminpass1", Role.ADMIN, station_id=station_b.id)
     _make_user(db_session, "officer_a", "pass12345", Role.USER, station_id=station_a.id)
-    _make_user(db_session, "officer_b", "pass12345", Role.USER, station_id=station_b.id)
-    token_a = _login(client, "officer_a", "pass12345")
-    token_b = _login(client, "officer_b", "pass12345")
+    admin_a_token = _login(client, "admin_a", "adminpass1")
+    admin_b_token = _login(client, "admin_b", "adminpass1")
+    officer_a_token = _login(client, "officer_a", "pass12345")
 
-    _create_criminal(client, token_a, station_a.id, full_name="Alpha Suspect")
-    _create_criminal(client, token_b, station_b.id, full_name="Beta Suspect")
+    _create_criminal(client, admin_a_token, station_a.id, full_name="Alpha Suspect")
+    _create_criminal(client, admin_b_token, station_b.id, full_name="Beta Suspect")
 
-    response = client.get("/criminals", headers=_auth(token_a))
+    response = client.get("/criminals", headers=_auth(officer_a_token))
 
     assert response.status_code == 200
     body = response.json()
@@ -170,11 +187,13 @@ def test_search_returns_criminals_across_all_stations(client, db_session):
 
 def test_search_filters_by_status(client, db_session):
     station = _make_station(db_session)
+    _make_user(db_session, "dhk01admin", "adminpass1", Role.ADMIN, station_id=station.id)
     _make_user(db_session, "officer1", "officerpass1", Role.USER, station_id=station.id)
+    admin_token = _login(client, "dhk01admin", "adminpass1")
     token = _login(client, "officer1", "officerpass1")
 
-    _create_criminal(client, token, station.id, full_name="Wanted One", status="Wanted")
-    _create_criminal(client, token, station.id, full_name="Released One", status="Released")
+    _create_criminal(client, admin_token, station.id, full_name="Wanted One", status="Wanted")
+    _create_criminal(client, admin_token, station.id, full_name="Released One", status="Released")
 
     response = client.get("/criminals", params={"status": "Wanted"}, headers=_auth(token))
 
@@ -191,9 +210,11 @@ def test_search_requires_authentication(client):
 
 def test_get_criminal_detail_returns_full_profile(client, db_session):
     station = _make_station(db_session)
+    _make_user(db_session, "dhk01admin", "adminpass1", Role.ADMIN, station_id=station.id)
     _make_user(db_session, "officer1", "officerpass1", Role.USER, station_id=station.id)
+    admin_token = _login(client, "dhk01admin", "adminpass1")
     token = _login(client, "officer1", "officerpass1")
-    created = _create_criminal(client, token, station.id)
+    created = _create_criminal(client, admin_token, station.id)
 
     response = client.get(f"/criminals/{created['id']}", headers=_auth(token))
 
@@ -230,9 +251,9 @@ def test_admin_cannot_edit_other_station_criminal(client, db_session):
     station_a = _make_station(db_session, code="DHK-01")
     station_b = _make_station(db_session, code="DHK-02")
     _make_user(db_session, "dhk01admin", "adminpass1", Role.ADMIN, station_id=station_a.id)
-    _make_user(db_session, "officer_b", "pass12345", Role.USER, station_id=station_b.id)
+    _make_user(db_session, "dhk02admin", "adminpass1", Role.ADMIN, station_id=station_b.id)
     token_a = _login(client, "dhk01admin", "adminpass1")
-    token_b = _login(client, "officer_b", "pass12345")
+    token_b = _login(client, "dhk02admin", "adminpass1")
     created = _create_criminal(client, token_b, station_b.id)
 
     response = client.patch(
@@ -259,9 +280,11 @@ def test_edit_404_for_missing_criminal(client, db_session):
 
 def test_edit_can_replace_front_photo(client, db_session):
     station = _make_station(db_session)
+    _make_user(db_session, "dhk01admin", "adminpass1", Role.ADMIN, station_id=station.id)
     _make_user(db_session, "officer1", "officerpass1", Role.USER, station_id=station.id)
+    admin_token = _login(client, "dhk01admin", "adminpass1")
     token = _login(client, "officer1", "officerpass1")
-    created = _create_criminal(client, token, station.id)
+    created = _create_criminal(client, admin_token, station.id)
 
     response = client.patch(
         f"/criminals/{created['id']}",
@@ -292,9 +315,11 @@ def test_station_admin_can_delete_own_station_criminal(client, db_session):
 
 def test_station_user_cannot_delete_criminal(client, db_session):
     station = _make_station(db_session)
+    _make_user(db_session, "dhk01admin", "adminpass1", Role.ADMIN, station_id=station.id)
     _make_user(db_session, "officer1", "officerpass1", Role.USER, station_id=station.id)
+    admin_token = _login(client, "dhk01admin", "adminpass1")
     token = _login(client, "officer1", "officerpass1")
-    created = _create_criminal(client, token, station.id)
+    created = _create_criminal(client, admin_token, station.id)
 
     response = client.delete(f"/criminals/{created['id']}", headers=_auth(token))
 
@@ -305,9 +330,9 @@ def test_admin_cannot_delete_other_station_criminal(client, db_session):
     station_a = _make_station(db_session, code="DHK-01")
     station_b = _make_station(db_session, code="DHK-02")
     _make_user(db_session, "dhk01admin", "adminpass1", Role.ADMIN, station_id=station_a.id)
-    _make_user(db_session, "officer_b", "pass12345", Role.USER, station_id=station_b.id)
+    _make_user(db_session, "dhk02admin", "adminpass1", Role.ADMIN, station_id=station_b.id)
     token_a = _login(client, "dhk01admin", "adminpass1")
-    token_b = _login(client, "officer_b", "pass12345")
+    token_b = _login(client, "dhk02admin", "adminpass1")
     created = _create_criminal(client, token_b, station_b.id)
 
     response = client.delete(f"/criminals/{created['id']}", headers=_auth(token_a))
@@ -317,9 +342,9 @@ def test_admin_cannot_delete_other_station_criminal(client, db_session):
 
 def test_super_admin_can_delete_any_criminal(client, db_session):
     station = _make_station(db_session)
-    _make_user(db_session, "officer1", "officerpass1", Role.USER, station_id=station.id)
-    officer_token = _login(client, "officer1", "officerpass1")
-    created = _create_criminal(client, officer_token, station.id)
+    _make_user(db_session, "dhk01admin", "adminpass1", Role.ADMIN, station_id=station.id)
+    admin_token = _login(client, "dhk01admin", "adminpass1")
+    created = _create_criminal(client, admin_token, station.id)
 
     _make_user(db_session, "root", "s3cret", Role.SUPER_ADMIN)
     root_token = _login(client, "root", "s3cret")
@@ -340,9 +365,11 @@ def test_delete_404_for_missing_criminal(client, db_session):
 
 def test_edit_rejects_explicit_null_for_required_field(client, db_session):
     station = _make_station(db_session)
+    _make_user(db_session, "dhk01admin", "adminpass1", Role.ADMIN, station_id=station.id)
     _make_user(db_session, "officer1", "officerpass1", Role.USER, station_id=station.id)
+    admin_token = _login(client, "dhk01admin", "adminpass1")
     token = _login(client, "officer1", "officerpass1")
-    created = _create_criminal(client, token, station.id)
+    created = _create_criminal(client, admin_token, station.id)
 
     response = client.patch(
         f"/criminals/{created['id']}",
@@ -372,8 +399,8 @@ def test_delete_frees_criminal_code_and_removes_photo_files(client, db_session):
 
 def test_create_criminal_rejects_non_image_photo(client, db_session):
     station = _make_station(db_session)
-    _make_user(db_session, "officer1", "officerpass1", Role.USER, station_id=station.id)
-    token = _login(client, "officer1", "officerpass1")
+    _make_user(db_session, "dhk01admin", "adminpass1", Role.ADMIN, station_id=station.id)
+    token = _login(client, "dhk01admin", "adminpass1")
 
     response = client.post(
         "/criminals",
@@ -387,8 +414,8 @@ def test_create_criminal_rejects_non_image_photo(client, db_session):
 
 def test_create_criminal_rejects_empty_photo(client, db_session):
     station = _make_station(db_session)
-    _make_user(db_session, "officer1", "officerpass1", Role.USER, station_id=station.id)
-    token = _login(client, "officer1", "officerpass1")
+    _make_user(db_session, "dhk01admin", "adminpass1", Role.ADMIN, station_id=station.id)
+    token = _login(client, "dhk01admin", "adminpass1")
 
     response = client.post(
         "/criminals",

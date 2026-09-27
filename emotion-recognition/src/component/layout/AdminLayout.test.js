@@ -18,18 +18,19 @@ function renderLayout(user, { logout = jest.fn(), toggleTheme = jest.fn() } = {}
   );
 }
 
-test("station user sees Dashboard, Criminal Search, Add Criminal but not User Management", () => {
+test("station user sees Dashboard and Criminal Search but not Add Criminal or User Management", () => {
   renderLayout({ id: 1, role: "user", username: "officer1", station_id: 1 });
 
   expect(screen.getByRole("link", { name: /dashboard/i })).toBeInTheDocument();
   expect(screen.getByRole("link", { name: /criminal search/i })).toBeInTheDocument();
-  expect(screen.getByRole("link", { name: /add criminal/i })).toBeInTheDocument();
+  expect(screen.queryByRole("link", { name: /add criminal/i })).not.toBeInTheDocument();
   expect(screen.queryByRole("link", { name: /user management/i })).not.toBeInTheDocument();
 });
 
-test("station admin additionally sees User Management", () => {
+test("station admin additionally sees Add Criminal and User Management", () => {
   renderLayout({ id: 2, role: "admin", username: "dhk01admin", station_id: 1 });
 
+  expect(screen.getByRole("link", { name: /add criminal/i })).toBeInTheDocument();
   expect(screen.getByRole("link", { name: /user management/i })).toBeInTheDocument();
 });
 
