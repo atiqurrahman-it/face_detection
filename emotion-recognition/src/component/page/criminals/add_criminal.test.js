@@ -1,0 +1,129 @@
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { AuthContext } from "../../../context/AuthContext";
+import { ThemeContext } from "../../../context/ThemeContext";
+import AddCriminal from "./add_criminal";
+
+function renderWithAuth(user) {
+  return render(
+    <AuthContext.Provider value={{ user, token: "abc123", loading: false, logout: jest.fn() }}>
+      <ThemeContext.Provider value={{ theme: "light", toggleTheme: jest.fn() }}>
+        <MemoryRouter initialEntries={["/criminals/new"]}>
+          <Routes>
+            <Route path="/criminals/new" element={<AddCriminal />} />
+            <Route path="/criminals" element={<div>Criminal Search Page</div>} />
+          </Routes>
+        </MemoryRouter>
+      </ThemeContext.Provider>
+    </AuthContext.Provider>
+  );
+}
+
+function mockCriminalsApi({ stations = [], createResult = null } = {}) {
+  const requests = [];
+
+  global.fetch.mockImplementation(async (url, options = {}) => {
+    const method = options.method || "GET";
+    const parsed = new URL(url, "http://localhost");
+    requests.push({ url, method, body: options.body });
+
+    if (parsed.pathname === "/stations") {
+      return {
+        ok: true,
+        json: async () => ({
+          success: true,
+          data: stations,
+          pagination: { total: stations.length, page: 1, limit: 100, totalPages: 1 },
+        }),
+      };
+    }
+
+    if (method === "POST" && parsed.pathname === "/criminals") {
+      if (createResult && createResult.ok === false) {
+        return { ok: false, json: async () => ({ detail: createResult.detail }) };
+      }
+      const payload = JSON.parse(options.body.get("payload"));
+      return { ok: true, json: async () => ({ id: 1, criminal_code: "CR-000001", ...payload, photos: [] }) };
+    }
+
+    throw new Error(`Unhandled request: ${method} ${url}`);
+  });
+
+  return requests;
+}
+
+function pngFile(name = "front.jpg") {
+  return new File(["fake-bytes"], name, { type: "image/jpeg" });
+}
+
+beforeEach(() => {
+  global.fetch = jest.fn();
+});
+
+test("renders the sectioned form inside AdminLayout", async () => {
+  mockCriminalsApi({});
+
+  renderWithAuth({ role: "user", username: "officer1", station_id: 1 });
+
+  expect(screen.getByRole("heading", { name: "Add Criminal" })).toBeInTheDocument();
+  expect(screen.getByText("This criminal will be added under your station.")).toBeInTheDocument();
+  expect(screen.queryByLabelText("Station")).not.toBeInTheDocument();
+});
+
+test("super admin sees a station picker", async () => {
+  mockCriminalsApi({ stations: [{ id: 1, name: "Dhanmondi Thana", code: "DHK-01" }] });
+
+  renderWithAuth({ role: "super_admin", username: "root", station_id: null });
+
+  expect(await screen.findByLabelText("Station")).toBeInTheDocument();
+});
+
+test("blocks submission without a front photo", async () => {
+  mockCriminalsApi({});
+
+  renderWithAuth({ role: "user", username: "officer1", station_id: 1 });
+
+  fireEvent.change(screen.getByLabelText("Full name"), { target: { value: "John Doe" } });
+  fireEvent.change(screen.getByLabelText("Gender"), { target: { value: "Male" } });
+  fireEvent.change(screen.getByLabelText("Crime type"), { target: { value: "Theft" } });
+  fireEvent.change(screen.getByLabelText("Status"), { target: { value: "Wanted" } });
+  fireEvent.click(screen.getByRole("button", { name: /add criminal/i }));
+
+  expect(await screen.findByRole("alert")).toHaveTextContent(/front photo is required/i);
+  expect(global.fetch).not.toHaveBeenCalled();
+});
+
+test("submits a multipart request with the criminal payload and photo, then navigates to the search page", async () => {
+  const requests = mockCriminalsApi({});
+
+  renderWithAuth({ role: "user", username: "officer1", station_id: 7 });
+
+  fireEvent.change(screen.getByLabelText("Full name"), { target: { value: "John Doe" } });
+  fireEvent.change(screen.getByLabelText("Gender"), { target: { value: "Male" } });
+  fireEvent.change(screen.getByLabelText("Crime type"), { target: { value: "Theft" } });
+  fireEvent.change(screen.getByLabelText("Status"), { target: { value: "Wanted" } });
+  fireEvent.change(screen.getByLabelText("Front photo (required)"), { target: { files: [pngFile()] } });
+  fireEvent.click(screen.getByRole("button", { name: /add criminal/i }));
+
+  expect(await screen.findByText("Criminal Search Page")).toBeInTheDocument();
+
+  const createRequest = requests.find((r) => r.method === "POST");
+  const payload = JSON.parse(createRequest.body.get("payload"));
+  expect(payload).toMatchObject({ full_name: "John Doe", gender: "Male", crime_type: "Theft", status: "Wanted", station_id: 7 });
+  expect(createRequest.body.get("front_photo")).toBeTruthy();
+});
+
+test("shows an error message when the backend rejects the submission", async () => {
+  mockCriminalsApi({ createResult: { ok: false, detail: "Station not found" } });
+
+  renderWithAuth({ role: "user", username: "officer1", station_id: 1 });
+
+  fireEvent.change(screen.getByLabelText("Full name"), { target: { value: "John Doe" } });
+  fireEvent.change(screen.getByLabelText("Gender"), { target: { value: "Male" } });
+  fireEvent.change(screen.getByLabelText("Crime type"), { target: { value: "Theft" } });
+  fireEvent.change(screen.getByLabelText("Status"), { target: { value: "Wanted" } });
+  fireEvent.change(screen.getByLabelText("Front photo (required)"), { target: { files: [pngFile()] } });
+  fireEvent.click(screen.getByRole("button", { name: /add criminal/i }));
+
+  expect(await screen.findByRole("alert")).toHaveTextContent("Station not found");
+});
