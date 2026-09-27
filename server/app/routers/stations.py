@@ -116,6 +116,28 @@ def list_stations(
     }
 
 
+@router.get("/{station_id}", response_model=StationOut)
+def get_station(
+    station_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(Role.SUPER_ADMIN, Role.ADMIN, Role.USER)),
+):
+    _station_scope(station_id, current_user)
+    station = db.query(Station).filter(Station.id == station_id).first()
+    if not station:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Station not found")
+    criminal_count = db.query(func.count(Criminal.id)).filter(Criminal.station_id == station_id).scalar()
+    return {
+        "id": station.id,
+        "name": station.name,
+        "division": station.division,
+        "district": station.district,
+        "thana": station.thana,
+        "code": station.code,
+        "criminal_count": criminal_count,
+    }
+
+
 @router.post("/{station_id}/users", response_model=UserOut, status_code=status.HTTP_201_CREATED)
 def create_station_user(
     station_id: int,

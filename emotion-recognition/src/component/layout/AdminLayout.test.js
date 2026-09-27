@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { AuthContext } from "../../context/AuthContext";
 import { ThemeContext } from "../../context/ThemeContext";
@@ -39,13 +39,31 @@ test("super admin does not see User Management", () => {
   expect(screen.queryByRole("link", { name: /user management/i })).not.toBeInTheDocument();
 });
 
-test("clicking log out calls logout", () => {
+test("clicking log out shows a confirmation dialog, and confirming calls logout", () => {
   const logout = jest.fn();
   renderLayout({ id: 1, role: "user", username: "officer1", station_id: 1 }, { logout });
 
-  fireEvent.click(screen.getByRole("button", { name: /log ?out/i }));
+  fireEvent.click(screen.getByRole("button", { name: /^log ?out$/i }));
+  expect(logout).not.toHaveBeenCalled();
+
+  const dialog = screen.getByRole("dialog", { name: /log out/i });
+  expect(within(dialog).getByText(/are you sure you want to log out/i)).toBeInTheDocument();
+
+  fireEvent.click(within(dialog).getByRole("button", { name: /^log ?out$/i }));
 
   expect(logout).toHaveBeenCalledTimes(1);
+});
+
+test("cancelling the log out confirmation does not call logout", () => {
+  const logout = jest.fn();
+  renderLayout({ id: 1, role: "user", username: "officer1", station_id: 1 }, { logout });
+
+  fireEvent.click(screen.getByRole("button", { name: /^log ?out$/i }));
+  const dialog = screen.getByRole("dialog", { name: /log out/i });
+  fireEvent.click(within(dialog).getByRole("button", { name: /cancel/i }));
+
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  expect(logout).not.toHaveBeenCalled();
 });
 
 test("renders the page title and children", () => {

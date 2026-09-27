@@ -1,4 +1,9 @@
-export default function Modal({ open, onClose, title, children }) {
+const MAX_WIDTH_CLASSES = {
+  md: "max-w-lg",
+  lg: "max-w-3xl",
+};
+
+export default function Modal({ open, onClose, title, children, size = "md" }) {
   if (!open) return null;
 
   return (
@@ -10,7 +15,7 @@ export default function Modal({ open, onClose, title, children }) {
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className="thin-scrollbar max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-slate-200 bg-white p-6 shadow-xl dark:border-slate-800 dark:bg-slate-900"
+        className={`thin-scrollbar max-h-[90vh] w-full ${MAX_WIDTH_CLASSES[size]} overflow-y-auto rounded-2xl border border-slate-200 bg-white p-6 shadow-xl dark:border-slate-800 dark:bg-slate-900`}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-4 flex items-center justify-between">

@@ -5,6 +5,7 @@ import ImageInput from "./component/page/image_input/image_input";
 import LoginPage from "./component/page/login/login_page";
 import SuperAdminDashboard from "./component/page/dashboard/super_admin_dashboard";
 import CreateStation from "./component/page/stations/create_station";
+import StationDetail from "./component/page/stations/station_detail";
 import CriminalSearch from "./component/page/criminals/criminal_search";
 import AddCriminal from "./component/page/criminals/add_criminal";
 import StationDashboard from "./component/page/dashboard/station_dashboard";
@@ -38,6 +39,15 @@ function App() {
               element={
                 <ProtectedRoute roles={["super_admin"]}>
                   <CreateStation />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              exact
+              path="/stations/:stationId"
+              element={
+                <ProtectedRoute roles={["super_admin"]}>
+                  <StationDetail />
                 </ProtectedRoute>
               }
             />

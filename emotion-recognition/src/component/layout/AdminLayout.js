@@ -1,6 +1,9 @@
+import { useState } from "react";
 import { NavLink } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../context/ThemeContext";
+import Button from "../common/Button";
+import Modal from "../common/Modal";
 import {
   DashboardIcon,
   LogoutIcon,
@@ -31,6 +34,7 @@ export default function AdminLayout({ title, children }) {
   const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const items = NAV_ITEMS.filter((item) => item.roles.includes(user.role));
+  const [isLogoutModalOpen, setLogoutModalOpen] = useState(false);
 
   return (
     <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-slate-950">
@@ -49,7 +53,7 @@ export default function AdminLayout({ title, children }) {
         </nav>
         <button
           type="button"
-          onClick={logout}
+          onClick={() => setLogoutModalOpen(true)}
           className="flex items-center gap-3 rounded-lg border border-slate-300 bg-slate-100 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
         >
           <LogoutIcon className="h-5 w-5" />
@@ -78,6 +82,18 @@ export default function AdminLayout({ title, children }) {
 
         <main className="thin-scrollbar flex-1 overflow-y-auto p-6">{children}</main>
       </div>
+
+      <Modal open={isLogoutModalOpen} onClose={() => setLogoutModalOpen(false)} title="Log out">
+        <p className="text-sm text-slate-600 dark:text-slate-300">Are you sure you want to log out?</p>
+        <div className="mt-6 flex justify-end gap-3">
+          <Button type="button" variant="secondary" onClick={() => setLogoutModalOpen(false)}>
+            Cancel
+          </Button>
+          <Button type="button" variant="danger" onClick={logout}>
+            Log out
+          </Button>
+        </div>
+      </Modal>
     </div>
   );
 }

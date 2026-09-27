@@ -149,6 +149,41 @@ def test_any_authenticated_role_can_list_stations(client, db_session):
         assert response.status_code == 200, f"{username} got {response.status_code}"
 
 
+def test_get_station_returns_details_and_criminal_count(client, db_session):
+    _make_user(db_session, "root", "s3cret", Role.SUPER_ADMIN)
+    token = _login(client, "root", "s3cret")
+    station = _make_station(db_session)
+
+    response = client.get(f"/stations/{station.id}", headers=_auth(token))
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["id"] == station.id
+    assert body["name"] == "Dhanmondi Thana"
+    assert body["thana"] == "Dhanmondi"
+    assert body["criminal_count"] == 0
+
+
+def test_get_station_404_for_unknown_id(client, db_session):
+    _make_user(db_session, "root", "s3cret", Role.SUPER_ADMIN)
+    token = _login(client, "root", "s3cret")
+
+    response = client.get("/stations/999", headers=_auth(token))
+
+    assert response.status_code == 404
+
+
+def test_get_station_forbidden_for_a_different_stations_admin(client, db_session):
+    station_a = _make_station(db_session, code="DHK-01")
+    station_b = _make_station(db_session, code="DHK-02")
+    _make_user(db_session, "dhk01admin", "adminpass1", Role.ADMIN, station_id=station_a.id)
+    token = _login(client, "dhk01admin", "adminpass1")
+
+    response = client.get(f"/stations/{station_b.id}", headers=_auth(token))
+
+    assert response.status_code == 403
+
+
 def _make_station(db_session, code="DHK-01"):
     station = Station(name="Dhanmondi Thana", division="Dhaka", district="Dhaka", thana="Dhanmondi", code=code)
     db_session.add(station)

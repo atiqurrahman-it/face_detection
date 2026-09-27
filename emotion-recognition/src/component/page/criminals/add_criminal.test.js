@@ -4,14 +4,15 @@ import { AuthContext } from "../../../context/AuthContext";
 import { ThemeContext } from "../../../context/ThemeContext";
 import AddCriminal from "./add_criminal";
 
-function renderWithAuth(user) {
+function renderWithAuth(user, { initialEntry = "/criminals/new" } = {}) {
   return render(
     <AuthContext.Provider value={{ user, token: "abc123", loading: false, logout: jest.fn() }}>
       <ThemeContext.Provider value={{ theme: "light", toggleTheme: jest.fn() }}>
-        <MemoryRouter initialEntries={["/criminals/new"]}>
+        <MemoryRouter initialEntries={[initialEntry]}>
           <Routes>
             <Route path="/criminals/new" element={<AddCriminal />} />
             <Route path="/criminals" element={<div>Criminal Search Page</div>} />
+            <Route path="/stations/:stationId" element={<div>Station Detail Page</div>} />
           </Routes>
         </MemoryRouter>
       </ThemeContext.Provider>
@@ -19,7 +20,7 @@ function renderWithAuth(user) {
   );
 }
 
-function mockCriminalsApi({ stations = [], createResult = null } = {}) {
+function mockCriminalsApi({ stations = [], stationById = {}, createResult = null } = {}) {
   const requests = [];
 
   global.fetch.mockImplementation(async (url, options = {}) => {
@@ -36,6 +37,13 @@ function mockCriminalsApi({ stations = [], createResult = null } = {}) {
           pagination: { total: stations.length, page: 1, limit: 100, totalPages: 1 },
         }),
       };
+    }
+
+    const singleStationMatch = parsed.pathname.match(/^\/stations\/(\d+)$/);
+    if (singleStationMatch) {
+      const station = stationById[singleStationMatch[1]];
+      if (!station) return { ok: false, json: async () => ({ detail: "Station not found" }) };
+      return { ok: true, json: async () => station };
     }
 
     if (method === "POST" && parsed.pathname === "/criminals") {
@@ -128,6 +136,35 @@ test("submits a multipart request with the criminal payload and photo, then navi
   const payload = JSON.parse(createRequest.body.get("payload"));
   expect(payload).toMatchObject({ full_name: "John Doe", gender: "Male", crime_type: "Theft", status: "Wanted", station_id: 7 });
   expect(createRequest.body.get("front_photo")).toBeTruthy();
+});
+
+test("skips division/district/station pickers and auto-assigns the station from ?station_id=, then navigates back to it", async () => {
+  const requests = mockCriminalsApi({
+    stationById: { 5: { id: 5, name: "Gulshan Thana", division: "Dhaka", district: "Dhaka", thana: "Gulshan", code: "DHK-GUL-01" } },
+  });
+
+  renderWithAuth(
+    { role: "super_admin", username: "root", station_id: null },
+    { initialEntry: "/criminals/new?station_id=5" }
+  );
+
+  expect(await screen.findByText(/Gulshan Thana \(DHK-GUL-01\)/)).toBeInTheDocument();
+  expect(screen.queryByLabelText("Division")).not.toBeInTheDocument();
+  expect(screen.queryByLabelText("District")).not.toBeInTheDocument();
+  expect(screen.queryByLabelText("Station")).not.toBeInTheDocument();
+
+  fireEvent.change(screen.getByLabelText("Full name"), { target: { value: "Jane Doe" } });
+  fireEvent.change(screen.getByLabelText("Gender"), { target: { value: "Female" } });
+  fireEvent.change(screen.getByLabelText("Crime type"), { target: { value: "Fraud" } });
+  fireEvent.change(screen.getByLabelText("Status"), { target: { value: "Wanted" } });
+  fireEvent.change(screen.getByLabelText("Front photo (required)"), { target: { files: [pngFile()] } });
+  fireEvent.click(screen.getByRole("button", { name: /add criminal/i }));
+
+  expect(await screen.findByText("Station Detail Page")).toBeInTheDocument();
+
+  const createRequest = requests.find((r) => r.method === "POST");
+  const payload = JSON.parse(createRequest.body.get("payload"));
+  expect(payload.station_id).toBe(5);
 });
 
 test("shows an error message when the backend rejects the submission", async () => {

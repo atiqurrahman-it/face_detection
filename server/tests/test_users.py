@@ -118,6 +118,34 @@ def test_admin_cannot_deactivate_other_stations_user(client, db_session):
     assert response.status_code == 403
 
 
+def test_admin_can_reactivate_own_station_user(client, db_session):
+    station = _make_station(db_session)
+    _make_user(db_session, "dhk01admin", "adminpass1", Role.ADMIN, station_id=station.id)
+    officer = _make_user(db_session, "officer1", "officerpass1", Role.USER, station_id=station.id)
+    token = _login(client, "dhk01admin", "adminpass1")
+
+    client.patch(f"/users/{officer.id}/deactivate", headers=_auth(token))
+    response = client.patch(f"/users/{officer.id}/activate", headers=_auth(token))
+
+    assert response.status_code == 200
+    assert response.json()["is_active"] is True
+
+    login_after = client.post("/auth/login", json={"username": "officer1", "password": "officerpass1"})
+    assert login_after.status_code == 200
+
+
+def test_admin_cannot_activate_other_stations_user(client, db_session):
+    station_a = _make_station(db_session, code="DHK-01")
+    station_b = _make_station(db_session, code="DHK-02")
+    _make_user(db_session, "dhk01admin", "adminpass1", Role.ADMIN, station_id=station_a.id)
+    officer_b = _make_user(db_session, "officer_b", "pass12345", Role.USER, station_id=station_b.id)
+    token = _login(client, "dhk01admin", "adminpass1")
+
+    response = client.patch(f"/users/{officer_b.id}/activate", headers=_auth(token))
+
+    assert response.status_code == 403
+
+
 def test_admin_cannot_deactivate_own_account(client, db_session):
     station = _make_station(db_session)
     admin = _make_user(db_session, "dhk01admin", "adminpass1", Role.ADMIN, station_id=station.id)

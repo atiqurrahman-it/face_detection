@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { apiFetch } from "../../../api/client";
 import { useAuth } from "../../../context/AuthContext";
 import { BD_DIVISIONS, districtsFor, thanasFor } from "../../../data/bd_geo";
@@ -202,10 +203,10 @@ export default function CreateStation() {
           <ul className="divide-y divide-slate-200 dark:divide-slate-800">
             {stations.map((s) => (
               <li key={s.id} className="flex items-center justify-between gap-4 py-2 text-sm text-slate-700 dark:text-slate-300">
-                <span>
-                  <span className="font-medium text-slate-900 dark:text-white">{s.name}</span> — {s.thana},{" "}
+                <Link to={`/stations/${s.id}`} className="hover:underline">
+                  <span className="font-medium text-emerald-600 dark:text-emerald-400">{s.name}</span> — {s.thana},{" "}
                   {s.district}, {s.division} ({s.code})
-                </span>
+                </Link>
                 <span className="shrink-0 rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400">
                   {s.criminal_count} criminal{s.criminal_count === 1 ? "" : "s"}
                 </span>
