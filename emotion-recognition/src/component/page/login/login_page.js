@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../context/AuthContext";
 import Button from "../../common/Button";
@@ -6,7 +6,15 @@ import Card from "../../common/Card";
 import FormField from "../../common/FormField";
 
 const inputClasses =
-  "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-slate-600 dark:bg-slate-800 dark:text-white dark:placeholder:text-slate-500";
+  "w-full rounded-lg border bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 dark:bg-slate-800 dark:text-white dark:placeholder:text-slate-500";
+const validBorder =
+  "border-slate-300 focus:border-emerald-500 focus:ring-emerald-500 dark:border-slate-600";
+const invalidBorder =
+  "border-red-500 focus:border-red-500 focus:ring-red-500 dark:border-red-500";
+
+function fieldClasses(hasError) {
+  return `${inputClasses} ${hasError ? invalidBorder : validBorder}`;
+}
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -16,10 +24,23 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState({});
+  const usernameRef = useRef(null);
+  const passwordRef = useRef(null);
 
   async function handleSubmit(e) {
     e.preventDefault();
     setError(null);
+
+    const errors = {};
+    if (!username.trim()) errors.username = "Username is required";
+    if (!password) errors.password = "Password is required";
+    setFieldErrors(errors);
+    if (errors.username || errors.password) {
+      (errors.username ? usernameRef : passwordRef).current?.focus();
+      return;
+    }
+
     setSubmitting(true);
     try {
       const user = await login(username, password);
@@ -38,27 +59,39 @@ export default function LoginPage() {
           <span className="text-2xl">🛡️</span>
           <span>Crime Track</span>
         </div>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <FormField label="Username" htmlFor="username">
+        <form onSubmit={handleSubmit} noValidate className="space-y-4">
+          <FormField label="Username" htmlFor="username" error={fieldErrors.username}>
             <input
               id="username"
+              ref={usernameRef}
               value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              onChange={(e) => {
+                setUsername(e.target.value);
+                if (fieldErrors.username) setFieldErrors((f) => ({ ...f, username: undefined }));
+              }}
               placeholder="Enter your username"
               autoComplete="username"
-              className={inputClasses}
+              aria-invalid={Boolean(fieldErrors.username)}
+              aria-describedby={fieldErrors.username ? "username-error" : undefined}
+              className={fieldClasses(fieldErrors.username)}
             />
           </FormField>
-          <FormField label="Password" htmlFor="password">
+          <FormField label="Password" htmlFor="password" error={fieldErrors.password}>
             <div className="relative">
               <input
                 id="password"
+                ref={passwordRef}
                 type={showPassword ? "text" : "password"}
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  if (fieldErrors.password) setFieldErrors((f) => ({ ...f, password: undefined }));
+                }}
                 placeholder="Enter your password"
                 autoComplete="current-password"
-                className={`${inputClasses} pr-10`}
+                aria-invalid={Boolean(fieldErrors.password)}
+                aria-describedby={fieldErrors.password ? "password-error" : undefined}
+                className={`${fieldClasses(fieldErrors.password)} pr-10`}
               />
               <button
                 type="button"
