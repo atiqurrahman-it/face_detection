@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import Webcam from "react-webcam";
-import { apiFetch, API_BASE_URL } from "../../../api/client";
+import { apiFetch, API_BASE_URL, WS_BASE_URL as DETECTION_WS_URL } from "../../../api/client";
 import { useAuth } from "../../../context/AuthContext";
 import { BD_DIVISIONS, districtsFor } from "../../../data/bd_geo";
 import { CRIMINAL_STATUSES } from "../../../data/criminal_status";
@@ -24,7 +24,6 @@ const inputClasses =
 const fileInputClasses =
   "block w-full text-sm text-slate-600 file:mr-4 file:rounded-lg file:border-0 file:bg-emerald-500 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-emerald-600 dark:text-slate-300";
 
-const DETECTION_WS_URL = "ws://localhost:8000";
 const DETECT_INTERVAL_MS = 400;
 const AUTO_SEARCH_COOLDOWN_MS = 3000;
 

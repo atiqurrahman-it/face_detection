@@ -2,8 +2,8 @@ import React, { useState } from "react";
 import EmotionBreakdown from "../../common/EmotionBreakdown";
 import FaceOverlay from "../../common/FaceOverlay";
 import { sortFacesReadingOrder } from "../../common/faceOrder";
+import { WS_BASE_URL as WS_URL } from "../../../api/client";
 
-const WS_URL = "ws://localhost:8000";
 const VALID_TYPES = ["image/png", "image/jpeg", "image/gif"];
 const MAX_SIZE_BYTES = 10 * 1024 * 1024;
 

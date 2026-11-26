@@ -24,8 +24,10 @@ def create_super_admin(db: Session, username: str, password: str, name: str = "S
 
 
 # The one and only super admin, created on backend startup (first deploy) when the
-# database has no super admin yet. The repo is private, so these live here on purpose.
-# Once it exists it is never re-created or overwritten: update it via PATCH /auth/me.
+# database has no super admin yet. Once it exists it is never re-created or
+# overwritten: update it via PATCH /auth/me.
+# DEFAULT_SUPER_ADMIN_PASSWORD is for local development only. A deployed server
+# (APP_ENV=production) must set the SUPER_ADMIN_PASSWORD secret instead.
 DEFAULT_SUPER_ADMIN_USERNAME = "superadmin"
 DEFAULT_SUPER_ADMIN_PASSWORD = "atik@120"
 DEFAULT_SUPER_ADMIN_NAME = "Super Admin"
@@ -52,3 +54,12 @@ def seed_default_super_admin(
     db.commit()
     db.refresh(user)
     return user
+
+
+def super_admin_password(env) -> str:
+    password = env.get("SUPER_ADMIN_PASSWORD")
+    if password:
+        return password
+    if env.get("APP_ENV") == "production":
+        raise RuntimeError("SUPER_ADMIN_PASSWORD must be set when APP_ENV=production")
+    return DEFAULT_SUPER_ADMIN_PASSWORD

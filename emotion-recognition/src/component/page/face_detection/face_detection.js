@@ -2,8 +2,8 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import Webcam from "react-webcam";
 import EmotionBreakdown from "../../common/EmotionBreakdown";
 import FaceOverlay from "../../common/FaceOverlay";
+import { WS_BASE_URL as WS_URL } from "../../../api/client";
 
-const WS_URL = "ws://localhost:8000";
 const DETECT_INTERVAL_MS = 400;
 
 const RealFaceDetection = () => {

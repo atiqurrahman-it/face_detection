@@ -6,7 +6,7 @@ from fastapi.staticfiles import StaticFiles
 
 from .database import Base, SessionLocal, engine
 from .routers import auth, criminals, dashboard, detection, stations, users
-from .seed import seed_default_super_admin
+from .seed import seed_default_super_admin, super_admin_password
 from .storage import UPLOAD_ROOT
 
 Base.metadata.create_all(bind=engine)
@@ -39,7 +39,7 @@ def seed_initial_super_admin():
         return
     db = SessionLocal()
     try:
-        seed_default_super_admin(db)
+        seed_default_super_admin(db, password=super_admin_password(os.environ))
     finally:
         db.close()
 

@@ -1,5 +1,12 @@
 const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
 
+// WebSocket base for face detection: same host as the API, ws:// or wss:// to match.
+export function toWebSocketUrl(apiUrl) {
+  return apiUrl.replace(/^http/, "ws");
+}
+
+export const WS_BASE_URL = toWebSocketUrl(API_BASE_URL);
+
 export async function apiFetch(path, { method = "GET", body, token, headers = {} } = {}) {
   const isFormData = body instanceof FormData;
 

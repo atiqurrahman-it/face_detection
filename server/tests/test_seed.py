@@ -62,3 +62,23 @@ def test_seed_default_super_admin_does_not_overwrite_existing_password(db_sessio
 
     assert first.id == second.id
     assert verify_password("original", second.password_hash)
+
+
+def test_super_admin_password_uses_env_secret_when_set():
+    from app.seed import super_admin_password
+
+    assert super_admin_password({"SUPER_ADMIN_PASSWORD": "live-secret-1"}) == "live-secret-1"
+
+
+def test_super_admin_password_falls_back_to_seed_default_locally():
+    from app.seed import DEFAULT_SUPER_ADMIN_PASSWORD, super_admin_password
+
+    assert super_admin_password({}) == DEFAULT_SUPER_ADMIN_PASSWORD
+
+
+def test_super_admin_password_required_in_production():
+    import pytest
+    from app.seed import super_admin_password
+
+    with pytest.raises(RuntimeError):
+        super_admin_password({"APP_ENV": "production"})
