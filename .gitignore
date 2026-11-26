@@ -4,5 +4,6 @@ server/.venv
 __pycache__/
 *.pyc
 server/*.db
+server/*.db.bak*
 server/.env
 server/uploads/

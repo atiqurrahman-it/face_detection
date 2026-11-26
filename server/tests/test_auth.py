@@ -81,3 +81,77 @@ def test_me_rejects_token_for_deactivated_user(client, db_session):
     response = client.get("/auth/me", headers={"Authorization": f"Bearer {token}"})
 
     assert response.status_code == 401
+
+
+def _token(client, username, password):
+    return client.post("/auth/login", json={"username": username, "password": password}).json()["access_token"]
+
+
+def test_super_admin_can_update_own_name_and_username(client, db_session):
+    _make_user(db_session, "root", "s3cret12", Role.SUPER_ADMIN)
+    token = _token(client, "root", "s3cret12")
+
+    response = client.patch(
+        "/auth/me",
+        json={"name": "Chief", "username": "chief"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["name"] == "Chief"
+    assert response.json()["username"] == "chief"
+    assert client.post("/auth/login", json={"username": "chief", "password": "s3cret12"}).status_code == 200
+
+
+def test_super_admin_can_change_password_with_current_password(client, db_session):
+    _make_user(db_session, "root", "s3cret12", Role.SUPER_ADMIN)
+    token = _token(client, "root", "s3cret12")
+
+    response = client.patch(
+        "/auth/me",
+        json={"current_password": "s3cret12", "new_password": "brandnew99"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 200
+    assert client.post("/auth/login", json={"username": "root", "password": "s3cret12"}).status_code == 401
+    assert client.post("/auth/login", json={"username": "root", "password": "brandnew99"}).status_code == 200
+
+
+def test_password_change_requires_correct_current_password(client, db_session):
+    _make_user(db_session, "root", "s3cret12", Role.SUPER_ADMIN)
+    token = _token(client, "root", "s3cret12")
+
+    missing = client.patch(
+        "/auth/me", json={"new_password": "brandnew99"}, headers={"Authorization": f"Bearer {token}"}
+    )
+    wrong = client.patch(
+        "/auth/me",
+        json={"current_password": "nope", "new_password": "brandnew99"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert missing.status_code == 400
+    assert wrong.status_code == 400
+    assert client.post("/auth/login", json={"username": "root", "password": "s3cret12"}).status_code == 200
+
+
+def test_update_rejects_username_taken_by_another_user(client, db_session):
+    _make_user(db_session, "root", "s3cret12", Role.SUPER_ADMIN)
+    _make_user(db_session, "officer1", "officerpass1", Role.USER)
+    token = _token(client, "root", "s3cret12")
+
+    response = client.patch(
+        "/auth/me", json={"username": "officer1"}, headers={"Authorization": f"Bearer {token}"}
+    )
+
+    assert response.status_code == 409
+
+
+def test_only_super_admin_can_use_update_me(client, db_session):
+    _make_user(db_session, "officer1", "officerpass1", Role.USER)
+    token = _token(client, "officer1", "officerpass1")
+
+    response = client.patch("/auth/me", json={"name": "X"}, headers={"Authorization": f"Bearer {token}"})
+
+    assert response.status_code == 403

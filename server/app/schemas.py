@@ -31,6 +31,13 @@ class UserOut(BaseModel):
         orm_mode = True
 
 
+class SuperAdminUpdate(BaseModel):
+    name: Optional[Name] = None
+    username: Optional[Name] = None
+    current_password: Optional[str] = None
+    new_password: Optional[Password] = None
+
+
 class StationCreate(BaseModel):
     name: Name
     division: Name

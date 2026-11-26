@@ -31,14 +31,26 @@ def test_seed_default_super_admin_creates_superadmin(db_session):
     assert verify_password("atik@120", user.password_hash)
 
 
-def test_seed_default_super_admin_creates_even_if_another_super_admin_exists(db_session):
+def test_seed_default_super_admin_does_not_create_a_second_super_admin(db_session):
     from app.seed import seed_default_super_admin
 
-    create_super_admin(db_session, "root", "s3cret")
+    root = create_super_admin(db_session, "root", "s3cret")
     user = seed_default_super_admin(db_session)
 
-    assert user.username == "superadmin"
-    assert db_session.query(User).filter(User.role == Role.SUPER_ADMIN).count() == 2
+    assert user.id == root.id
+    assert db_session.query(User).filter(User.role == Role.SUPER_ADMIN).count() == 1
+
+
+def test_database_rejects_a_second_super_admin(db_session):
+    import pytest
+    from sqlalchemy.exc import IntegrityError
+
+    create_super_admin(db_session, "root", "s3cret")
+    db_session.add(User(name="Other", username="other", password_hash="x", role=Role.SUPER_ADMIN))
+
+    with pytest.raises(IntegrityError):
+        db_session.commit()
+    db_session.rollback()
 
 
 def test_seed_default_super_admin_does_not_overwrite_existing_password(db_session):

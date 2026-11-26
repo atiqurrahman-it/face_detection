@@ -1,7 +1,7 @@
 import enum
 from datetime import datetime
 
-from sqlalchemy import Boolean, Column, Date, DateTime, Enum, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, Column, Date, DateTime, Enum, ForeignKey, Index, Integer, String, Text, text
 from sqlalchemy.orm import relationship
 
 from .database import Base
@@ -40,6 +40,17 @@ class User(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     station = relationship("Station", back_populates="users")
+
+    # Exactly one super admin: it is seeded on startup and can only be updated, never added.
+    __table_args__ = (
+        Index(
+            "uq_single_super_admin",
+            "role",
+            unique=True,
+            sqlite_where=text("role = 'SUPER_ADMIN'"),
+            postgresql_where=text("role = 'SUPER_ADMIN'"),
+        ),
+    )
 
 
 class CriminalStatus(str, enum.Enum):
