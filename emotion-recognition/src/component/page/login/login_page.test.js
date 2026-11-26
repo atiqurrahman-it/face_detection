@@ -63,3 +63,16 @@ test("renders the Crime Track wordmark", () => {
   );
   expect(screen.getByText("Crime Track")).toBeInTheDocument();
 });
+
+test("username and password inputs show placeholders", () => {
+  render(
+    <AuthProvider>
+      <MemoryRouter>
+        <LoginPage />
+      </MemoryRouter>
+    </AuthProvider>
+  );
+
+  expect(screen.getByLabelText("Username")).toHaveAttribute("placeholder", "Enter your username");
+  expect(screen.getByLabelText("Password")).toHaveAttribute("placeholder", "Enter your password");
+});

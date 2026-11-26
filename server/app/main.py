@@ -4,8 +4,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from .database import Base, engine
+from .database import Base, SessionLocal, engine
 from .routers import auth, criminals, dashboard, detection, stations, users
+from .seed import seed_default_super_admin
 from .storage import UPLOAD_ROOT
 
 Base.metadata.create_all(bind=engine)
@@ -29,6 +30,18 @@ app.include_router(detection.router)
 
 os.makedirs(UPLOAD_ROOT, exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=UPLOAD_ROOT), name="uploads")
+
+
+@app.on_event("startup")
+def seed_initial_super_admin():
+    # Writes to the real DB, so the test suite turns it off (see tests/conftest.py).
+    if os.environ.get("SKIP_SUPER_ADMIN_SEED") == "1":
+        return
+    db = SessionLocal()
+    try:
+        seed_default_super_admin(db)
+    finally:
+        db.close()
 
 
 @app.get("/health")

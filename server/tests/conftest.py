@@ -6,6 +6,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from starlette.testclient import TestClient
 
+os.environ["SKIP_SUPER_ADMIN_SEED"] = "1"
 os.environ.setdefault("UPLOAD_ROOT", tempfile.mkdtemp(prefix="face_detection_test_uploads_"))
 
 from app.database import Base, get_db
