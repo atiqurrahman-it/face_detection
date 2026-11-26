@@ -1,4 +1,4 @@
-import { render, fireEvent } from "@testing-library/react";
+import { render, fireEvent, screen, act } from "@testing-library/react";
 import ImageInput from "./image_input";
 
 class FakeWebSocket {
@@ -53,4 +53,28 @@ test("closes the socket on a WebSocket error", () => {
   socket.onerror(new Event("error"));
 
   expect(socket.closed).toBe(true);
+});
+
+test("result cards are numbered in reading order (top-left face is Face 1)", () => {
+  const { container } = render(<ImageInput />);
+  const socket = uploadFile(container);
+  const preds = { Happy: 0.9, Angry: 0.1 };
+
+  act(() => {
+    socket.onmessage({
+      data: JSON.stringify({
+        imageWidth: 0,
+        imageHeight: 0,
+        faces: [
+          { box: { x: 300, y: 10, w: 100, h: 100 }, emotion: "Angry", predictions: preds },
+          { box: { x: 10, y: 10, w: 100, h: 100 }, emotion: "Happy", predictions: preds },
+        ],
+      }),
+    });
+  });
+
+  const face1 = screen.getByText("Face 1").parentElement;
+  const face2 = screen.getByText("Face 2").parentElement;
+  expect(face1).toHaveTextContent("Happy");
+  expect(face2).toHaveTextContent("Angry");
 });

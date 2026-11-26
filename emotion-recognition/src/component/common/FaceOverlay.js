@@ -1,9 +1,12 @@
 import { useEffect, useRef } from "react";
+import { faceLabel } from "./faceOrder";
 
 const BOX_COLOR = "#10b981";
 const TEXT_COLOR = "#022c22";
 
-const FaceOverlay = ({ faces = [], sourceWidth, sourceHeight }) => {
+// numbered: prefix each label with its face number ("1 · Happy") so boxes can be
+// matched to the "Face N" result cards rendered from the same array order.
+const FaceOverlay = ({ faces = [], sourceWidth, sourceHeight, numbered = false }) => {
   const canvasRef = useRef(null);
 
   useEffect(() => {
@@ -20,13 +23,15 @@ const FaceOverlay = ({ faces = [], sourceWidth, sourceHeight }) => {
     ctx.lineWidth = Math.max(2, sourceWidth / 250);
     ctx.font = `600 ${fontSize}px sans-serif`;
 
-    faces.forEach(({ box, emotion }) => {
+    faces.forEach((face, index) => {
+      const { box } = face;
+      const label = faceLabel(face, index, numbered);
       ctx.strokeStyle = BOX_COLOR;
       ctx.strokeRect(box.x, box.y, box.w, box.h);
 
       const paddingX = 6;
       const labelHeight = fontSize + 8;
-      const textWidth = ctx.measureText(emotion).width;
+      const textWidth = ctx.measureText(label).width;
       const labelY = Math.max(labelHeight, box.y);
 
       ctx.fillStyle = BOX_COLOR;
@@ -34,9 +39,9 @@ const FaceOverlay = ({ faces = [], sourceWidth, sourceHeight }) => {
 
       ctx.fillStyle = TEXT_COLOR;
       ctx.textBaseline = "bottom";
-      ctx.fillText(emotion, box.x + paddingX, labelY - 4);
+      ctx.fillText(label, box.x + paddingX, labelY - 4);
     });
-  }, [faces, sourceWidth, sourceHeight]);
+  }, [faces, sourceWidth, sourceHeight, numbered]);
 
   if (!sourceWidth || !sourceHeight) return null;
 

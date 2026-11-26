@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import EmotionBreakdown from "../../common/EmotionBreakdown";
 import FaceOverlay from "../../common/FaceOverlay";
+import { sortFacesReadingOrder } from "../../common/faceOrder";
 
 const WS_URL = "ws://localhost:8000";
 const VALID_TYPES = ["image/png", "image/jpeg", "image/gif"];
@@ -25,7 +26,8 @@ const ImageInput = () => {
     socket.onmessage = (event) => {
       const pred_log = JSON.parse(event.data);
       setFrameSize({ width: pred_log.imageWidth, height: pred_log.imageHeight });
-      setFaces(pred_log.faces || []);
+      // Reading order, so "Face 1" is the top-left face on the photo.
+      setFaces(sortFacesReadingOrder(pred_log.faces || []));
       setError(pred_log.error || "");
       socket.close();
     };
@@ -129,6 +131,7 @@ const ImageInput = () => {
                   faces={faces}
                   sourceWidth={frameSize.width}
                   sourceHeight={frameSize.height}
+                  numbered={faces.length > 1}
                 />
               </div>
             )}
