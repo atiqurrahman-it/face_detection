@@ -13,9 +13,9 @@ function renderNav() {
   );
 }
 
-test("renders the CrimTrace wordmark", () => {
+test("renders the Crime Track wordmark", () => {
   renderNav();
-  expect(screen.getByText("CrimTrace")).toBeInTheDocument();
+  expect(screen.getByText("Crime Track")).toBeInTheDocument();
 });
 
 test("does not render Face Detection or Image Input links", () => {
