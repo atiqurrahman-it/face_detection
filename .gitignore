@@ -6,4 +6,3 @@ __pycache__/
 server/*.db
 server/.env
 server/uploads/
-emotion-recognition/.env
