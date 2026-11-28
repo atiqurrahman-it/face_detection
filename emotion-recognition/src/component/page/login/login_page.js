@@ -60,7 +60,7 @@ export default function LoginPage() {
           <span>Crime Track</span>
         </div>
         <form onSubmit={handleSubmit} noValidate className="space-y-4">
-          <FormField label="Username" htmlFor="username" error={fieldErrors.username}>
+          <FormField label="Username" htmlFor="username" required error={fieldErrors.username}>
             <input
               id="username"
               ref={usernameRef}
@@ -76,7 +76,7 @@ export default function LoginPage() {
               className={fieldClasses(fieldErrors.username)}
             />
           </FormField>
-          <FormField label="Password" htmlFor="password" error={fieldErrors.password}>
+          <FormField label="Password" htmlFor="password" required error={fieldErrors.password}>
             <div className="relative">
               <input
                 id="password"
@@ -115,7 +115,7 @@ export default function LoginPage() {
             </div>
           </FormField>
           {error && (
-            <p role="alert" className="text-sm text-red-600 dark:text-red-400">
+            <p role="alert" className="whitespace-pre-line text-sm text-red-600 dark:text-red-400">
               {error}
             </p>
           )}

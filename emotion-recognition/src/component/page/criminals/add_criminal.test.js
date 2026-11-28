@@ -116,7 +116,8 @@ test("blocks submission without a front photo", async () => {
   fireEvent.change(screen.getByLabelText("Status"), { target: { value: "Wanted" } });
   fireEvent.click(screen.getByRole("button", { name: /add criminal/i }));
 
-  expect(await screen.findByRole("alert")).toHaveTextContent(/front photo is required/i);
+  expect(await screen.findByText("Front photo is required")).toBeInTheDocument();
+  expect(screen.getByRole("alert")).toHaveTextContent(/fill in all required fields/i);
   expect(global.fetch).not.toHaveBeenCalled();
 });
 
@@ -129,7 +130,7 @@ test("submits a multipart request with the criminal payload and photo, then navi
   fireEvent.change(screen.getByLabelText("Gender"), { target: { value: "Male" } });
   fireEvent.change(screen.getByLabelText("Crime type"), { target: { value: "Theft" } });
   fireEvent.change(screen.getByLabelText("Status"), { target: { value: "Wanted" } });
-  fireEvent.change(screen.getByLabelText("Front photo (required)"), { target: { files: [pngFile()] } });
+  fireEvent.change(screen.getByLabelText("Front photo"), { target: { files: [pngFile()] } });
   fireEvent.click(screen.getByRole("button", { name: /add criminal/i }));
 
   expect(await screen.findByText("Criminal Search Page")).toBeInTheDocument();
@@ -159,7 +160,7 @@ test("skips division/district/station pickers and auto-assigns the station from 
   fireEvent.change(screen.getByLabelText("Gender"), { target: { value: "Female" } });
   fireEvent.change(screen.getByLabelText("Crime type"), { target: { value: "Fraud" } });
   fireEvent.change(screen.getByLabelText("Status"), { target: { value: "Wanted" } });
-  fireEvent.change(screen.getByLabelText("Front photo (required)"), { target: { files: [pngFile()] } });
+  fireEvent.change(screen.getByLabelText("Front photo"), { target: { files: [pngFile()] } });
   fireEvent.click(screen.getByRole("button", { name: /add criminal/i }));
 
   expect(await screen.findByText("Station Detail Page")).toBeInTheDocument();
@@ -178,7 +179,7 @@ test("shows an error message when the backend rejects the submission", async () 
   fireEvent.change(screen.getByLabelText("Gender"), { target: { value: "Male" } });
   fireEvent.change(screen.getByLabelText("Crime type"), { target: { value: "Theft" } });
   fireEvent.change(screen.getByLabelText("Status"), { target: { value: "Wanted" } });
-  fireEvent.change(screen.getByLabelText("Front photo (required)"), { target: { files: [pngFile()] } });
+  fireEvent.change(screen.getByLabelText("Front photo"), { target: { files: [pngFile()] } });
   fireEvent.click(screen.getByRole("button", { name: /add criminal/i }));
 
   expect(await screen.findByRole("alert")).toHaveTextContent("Station not found");

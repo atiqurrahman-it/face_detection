@@ -91,7 +91,7 @@ export default function SuperAdminDashboard() {
     <AdminLayout title="Super Admin Dashboard">
       <div className="space-y-6">
         {error && (
-          <p role="alert" className="text-sm text-red-600 dark:text-red-400">
+          <p role="alert" className="whitespace-pre-line text-sm text-red-600 dark:text-red-400">
             {error}
           </p>
         )}

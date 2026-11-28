@@ -395,7 +395,7 @@ export default function CriminalSearch() {
 
           {photoSearchLoading && <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">Searching…</p>}
           {photoSearchError && (
-            <p role="alert" className="mt-3 text-sm text-red-600 dark:text-red-400">
+            <p role="alert" className="whitespace-pre-line mt-3 text-sm text-red-600 dark:text-red-400">
               {photoSearchError}
             </p>
           )}
@@ -514,7 +514,7 @@ export default function CriminalSearch() {
 
         <Card>
           {error && (
-            <p role="alert" className="mb-4 text-sm text-red-600 dark:text-red-400">
+            <p role="alert" className="whitespace-pre-line mb-4 text-sm text-red-600 dark:text-red-400">
               {error}
             </p>
           )}
@@ -550,7 +550,7 @@ export default function CriminalSearch() {
           {pendingDelete?.criminal_code})? This cannot be undone.
         </p>
         {error && (
-          <p role="alert" className="mt-3 text-sm text-red-600 dark:text-red-400">
+          <p role="alert" className="whitespace-pre-line mt-3 text-sm text-red-600 dark:text-red-400">
             {error}
           </p>
         )}

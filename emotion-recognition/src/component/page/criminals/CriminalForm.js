@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { apiFetch } from "../../../api/client";
+import { focusFirstError, hasErrors, validateForm } from "../../../utils/validation";
 import { useAuth } from "../../../context/AuthContext";
 import { BD_DIVISIONS, districtsFor } from "../../../data/bd_geo";
 import { CRIMINAL_STATUSES } from "../../../data/criminal_status";
@@ -39,6 +40,13 @@ const emptyForm = {
   stationLabel: "",
 };
 
+const CRIMINAL_RULES = {
+  status: { label: "Status", required: true },
+  crime_type: { label: "Crime type", required: true },
+  full_name: { label: "Full name", required: true },
+  gender: { label: "Gender", required: true },
+};
+
 const inputClasses =
   "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-slate-600 dark:bg-slate-800 dark:text-white";
 
@@ -68,6 +76,7 @@ export default function CriminalForm({ lockedStationId = null, onSuccess, onCanc
   const [leftPhoto, setLeftPhoto] = useState(null);
   const [rightPhoto, setRightPhoto] = useState(null);
   const [error, setError] = useState(null);
+  const [fieldErrors, setFieldErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
 
   const stationLabel = (s) => `${s.name} (${s.code})`;
@@ -104,6 +113,8 @@ export default function CriminalForm({ lockedStationId = null, onSuccess, onCanc
   function updateField(field) {
     return (e) => {
       const value = e.target.type === "checkbox" ? e.target.checked : e.target.value;
+      const key = field === "stationLabel" ? "station" : field;
+      setFieldErrors((errs) => (errs[key] ? { ...errs, [key]: undefined } : errs));
       setForm((f) => ({
         ...f,
         [field]: value,
@@ -117,13 +128,14 @@ export default function CriminalForm({ lockedStationId = null, onSuccess, onCanc
     e.preventDefault();
     setError(null);
 
-    if (!frontPhoto) {
-      setError("Front photo is required");
-      return;
-    }
     const stationId = isLocked ? Number(effectiveLockedStationId) : stationsByLabel[form.stationLabel];
-    if (!stationId) {
-      setError("Please select a station");
+    const errors = validateForm(form, CRIMINAL_RULES);
+    if (!stationId) errors.station = "Please select a station";
+    if (!frontPhoto) errors.front_photo = "Front photo is required";
+    setFieldErrors(errors);
+    if (hasErrors(errors)) {
+      focusFirstError(errors);
+      setError("Please fill in all required fields.");
       return;
     }
 
@@ -165,14 +177,20 @@ export default function CriminalForm({ lockedStationId = null, onSuccess, onCanc
       const created = await apiFetch("/criminals", { method: "POST", body, token });
       onSuccess?.(created);
     } catch (err) {
-      setError(err.message);
+      if (err.fieldErrors) {
+        const { station_id: stationError, ...rest } = err.fieldErrors;
+        setFieldErrors(stationError ? { ...rest, station: stationError } : rest);
+        setError("Please fix the highlighted fields.");
+      } else {
+        setError(err.message);
+      }
     } finally {
       setSubmitting(false);
     }
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} noValidate className="space-y-6">
       <Card>
         <h2 className="mb-4 text-lg font-semibold text-slate-900 dark:text-white">Station &amp; case</h2>
         <div className="grid gap-4 sm:grid-cols-2">
@@ -190,7 +208,7 @@ export default function CriminalForm({ lockedStationId = null, onSuccess, onCanc
             </p>
           ) : (
             <>
-              <FormField label="Division" htmlFor="division">
+              <FormField label="Division" htmlFor="division" required>
                 <SearchableSelect
                   id="division"
                   options={BD_DIVISIONS.map((d) => d.name)}
@@ -200,7 +218,7 @@ export default function CriminalForm({ lockedStationId = null, onSuccess, onCanc
                   className={inputClasses}
                 />
               </FormField>
-              <FormField label="District" htmlFor="district">
+              <FormField label="District" htmlFor="district" required>
                 <SearchableSelect
                   id="district"
                   options={districtOptions}
@@ -211,7 +229,7 @@ export default function CriminalForm({ lockedStationId = null, onSuccess, onCanc
                   className={inputClasses}
                 />
               </FormField>
-              <FormField label="Station" htmlFor="station">
+              <FormField label="Station" htmlFor="station" required error={fieldErrors.station}>
                 <SearchableSelect
                   id="station"
                   options={stationOptions.map(stationLabel)}
@@ -224,7 +242,7 @@ export default function CriminalForm({ lockedStationId = null, onSuccess, onCanc
               </FormField>
             </>
           )}
-          <FormField label="Status" htmlFor="status">
+          <FormField label="Status" htmlFor="status" required error={fieldErrors.status}>
             <select id="status" value={form.status} onChange={updateField("status")} className={inputClasses}>
               <option value="">Select status</option>
               {CRIMINAL_STATUSES.map((s) => (
@@ -234,7 +252,7 @@ export default function CriminalForm({ lockedStationId = null, onSuccess, onCanc
               ))}
             </select>
           </FormField>
-          <FormField label="Crime type" htmlFor="crime_type">
+          <FormField label="Crime type" htmlFor="crime_type" required error={fieldErrors.crime_type}>
             <input id="crime_type" value={form.crime_type} onChange={updateField("crime_type")} className={inputClasses} />
           </FormField>
           <FormField label="FIR case number" htmlFor="fir_case_number">
@@ -281,13 +299,13 @@ export default function CriminalForm({ lockedStationId = null, onSuccess, onCanc
       <Card>
         <h2 className="mb-4 text-lg font-semibold text-slate-900 dark:text-white">Personal information</h2>
         <div className="grid gap-4 sm:grid-cols-2">
-          <FormField label="Full name" htmlFor="full_name">
+          <FormField label="Full name" htmlFor="full_name" required error={fieldErrors.full_name}>
             <input id="full_name" value={form.full_name} onChange={updateField("full_name")} className={inputClasses} />
           </FormField>
           <FormField label="Alias" htmlFor="alias">
             <input id="alias" value={form.alias} onChange={updateField("alias")} className={inputClasses} />
           </FormField>
-          <FormField label="Gender" htmlFor="gender">
+          <FormField label="Gender" htmlFor="gender" required error={fieldErrors.gender}>
             <select id="gender" value={form.gender} onChange={updateField("gender")} className={inputClasses}>
               <option value="">Select gender</option>
               {GENDER_OPTIONS.map((g) => (
@@ -348,12 +366,15 @@ export default function CriminalForm({ lockedStationId = null, onSuccess, onCanc
       <Card>
         <h2 className="mb-4 text-lg font-semibold text-slate-900 dark:text-white">Photos</h2>
         <div className="grid gap-4 sm:grid-cols-3">
-          <FormField label="Front photo (required)" htmlFor="front_photo">
+          <FormField label="Front photo" htmlFor="front_photo" required error={fieldErrors.front_photo}>
             <input
               type="file"
               id="front_photo"
               accept="image/*"
-              onChange={(e) => setFrontPhoto(e.target.files[0] || null)}
+              onChange={(e) => {
+                setFrontPhoto(e.target.files[0] || null);
+                setFieldErrors((errs) => ({ ...errs, front_photo: undefined }));
+              }}
               className={fileInputClasses}
             />
           </FormField>
@@ -379,7 +400,7 @@ export default function CriminalForm({ lockedStationId = null, onSuccess, onCanc
       </Card>
 
       {error && (
-        <p role="alert" className="text-sm text-red-600 dark:text-red-400">
+        <p role="alert" className="whitespace-pre-line text-sm text-red-600 dark:text-red-400">
           {error}
         </p>
       )}

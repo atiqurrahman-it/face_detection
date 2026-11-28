@@ -1,6 +1,16 @@
 import { useEffect, useState } from "react";
 import { apiFetch } from "../../../api/client";
 import { useAuth } from "../../../context/AuthContext";
+import { focusFirstError, hasErrors, validateForm } from "../../../utils/validation";
+import FormField from "../../common/FormField";
+
+const USER_RULES = {
+  name: { label: "Name", required: true },
+  username: { label: "Username", required: true },
+  password: { label: "Password", required: true, minLength: 8 },
+};
+
+const inputClasses = "w-full border rounded px-2 py-1";
 
 const emptyForm = { name: "", username: "", password: "" };
 
@@ -10,18 +20,28 @@ export default function UserManagement() {
   const [users, setUsers] = useState([]);
   const [form, setForm] = useState(emptyForm);
   const [error, setError] = useState(null);
+  const [fieldErrors, setFieldErrors] = useState({});
 
   useEffect(() => {
     apiFetch(`/stations/${stationId}/users`, { token }).then(setUsers).catch((err) => setError(err.message));
   }, [token, stationId]);
 
   function updateField(field) {
-    return (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
+    return (e) => {
+      setFieldErrors((errs) => (errs[field] ? { ...errs, [field]: undefined } : errs));
+      setForm((f) => ({ ...f, [field]: e.target.value }));
+    };
   }
 
   async function handleCreate(e) {
     e.preventDefault();
     setError(null);
+    const errors = validateForm(form, USER_RULES);
+    setFieldErrors(errors);
+    if (hasErrors(errors)) {
+      focusFirstError(errors);
+      return;
+    }
     try {
       const created = await apiFetch(`/stations/${stationId}/users`, {
         method: "POST",
@@ -31,7 +51,8 @@ export default function UserManagement() {
       setUsers((prev) => [...prev, created]);
       setForm(emptyForm);
     } catch (err) {
-      setError(err.message);
+      if (err.fieldErrors) setFieldErrors(err.fieldErrors);
+      else setError(err.message);
     }
   }
 
@@ -60,20 +81,28 @@ export default function UserManagement() {
         ))}
       </ul>
 
-      <form onSubmit={handleCreate} className="space-y-2 max-w-sm">
-        <div>
-          <label htmlFor="name">Name</label>
-          <input id="name" value={form.name} onChange={updateField("name")} className="w-full border rounded px-2 py-1" />
-        </div>
-        <div>
-          <label htmlFor="username">Username</label>
-          <input id="username" value={form.username} onChange={updateField("username")} className="w-full border rounded px-2 py-1" />
-        </div>
-        <div>
-          <label htmlFor="password">Password</label>
-          <input id="password" type="password" value={form.password} onChange={updateField("password")} className="w-full border rounded px-2 py-1" />
-        </div>
-        {error && <p role="alert">{error}</p>}
+      <form onSubmit={handleCreate} noValidate className="space-y-2 max-w-sm">
+        <FormField label="Name" htmlFor="name" required error={fieldErrors.name}>
+          <input id="name" value={form.name} onChange={updateField("name")} className={inputClasses} />
+        </FormField>
+        <FormField label="Username" htmlFor="username" required error={fieldErrors.username}>
+          <input id="username" value={form.username} onChange={updateField("username")} className={inputClasses} />
+        </FormField>
+        <FormField label="Password" htmlFor="password" required error={fieldErrors.password}>
+          <input
+            id="password"
+            type="password"
+            placeholder="At least 8 characters"
+            value={form.password}
+            onChange={updateField("password")}
+            className={inputClasses}
+          />
+        </FormField>
+        {error && (
+          <p role="alert" className="whitespace-pre-line text-sm text-red-600 dark:text-red-400">
+            {error}
+          </p>
+        )}
         <button type="submit" className="border rounded px-2 py-1">
           Add user
         </button>

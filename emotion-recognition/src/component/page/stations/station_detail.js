@@ -8,6 +8,7 @@ import Button from "../../common/Button";
 import Card from "../../common/Card";
 import DataTable from "../../common/DataTable";
 import FormField from "../../common/FormField";
+import { focusFirstError, hasErrors, validateForm } from "../../../utils/validation";
 import Modal from "../../common/Modal";
 import Pagination from "../../common/Pagination";
 import StatusBadge from "../../common/StatusBadge";
@@ -19,6 +20,12 @@ const inputClasses =
   "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-slate-600 dark:bg-slate-800 dark:text-white";
 
 const emptyUserForm = { name: "", username: "", password: "", role: "user" };
+
+const USER_RULES = {
+  name: { label: "Name", required: true },
+  username: { label: "Username", required: true },
+  password: { label: "Password", required: true, minLength: 8 },
+};
 
 function Thumbnail({ criminal }) {
   const frontPhoto = criminal.photos.find((p) => p.angle === "front");
@@ -58,6 +65,7 @@ export default function StationDetail() {
   const [isUserModalOpen, setUserModalOpen] = useState(false);
   const [userForm, setUserForm] = useState(emptyUserForm);
   const [userError, setUserError] = useState(null);
+  const [userFieldErrors, setUserFieldErrors] = useState({});
   const [creatingUser, setCreatingUser] = useState(false);
   const [pendingUserAction, setPendingUserAction] = useState(null);
   const [updatingUserStatus, setUpdatingUserStatus] = useState(false);
@@ -117,24 +125,35 @@ export default function StationDetail() {
 
   function openUserModal() {
     setUserError(null);
+    setUserFieldErrors({});
     setUserForm(emptyUserForm);
     setUserModalOpen(true);
   }
 
   function updateUserField(field) {
-    return (e) => setUserForm((f) => ({ ...f, [field]: e.target.value }));
+    return (e) => {
+      setUserFieldErrors((errs) => (errs[field] ? { ...errs, [field]: undefined } : errs));
+      setUserForm((f) => ({ ...f, [field]: e.target.value }));
+    };
   }
 
   async function handleCreateUser(e) {
     e.preventDefault();
     setUserError(null);
+    const errors = validateForm(userForm, USER_RULES);
+    setUserFieldErrors(errors);
+    if (hasErrors(errors)) {
+      focusFirstError(errors, "user_");
+      return;
+    }
     setCreatingUser(true);
     try {
       await apiFetch(`/stations/${stationId}/users`, { method: "POST", body: userForm, token });
       setUserModalOpen(false);
       fetchUsers();
     } catch (err) {
-      setUserError(err.message);
+      if (err.fieldErrors) setUserFieldErrors(err.fieldErrors);
+      else setUserError(err.message);
     } finally {
       setCreatingUser(false);
     }
@@ -253,7 +272,7 @@ export default function StationDetail() {
     <AdminLayout title={station ? station.name : "Station"}>
       <div className="space-y-6">
         {error && (
-          <p role="alert" className="text-sm text-red-600 dark:text-red-400">
+          <p role="alert" className="whitespace-pre-line text-sm text-red-600 dark:text-red-400">
             {error}
           </p>
         )}
@@ -349,7 +368,7 @@ export default function StationDetail() {
           {pendingDelete?.criminal_code})? This cannot be undone.
         </p>
         {error && (
-          <p role="alert" className="mt-3 text-sm text-red-600 dark:text-red-400">
+          <p role="alert" className="whitespace-pre-line mt-3 text-sm text-red-600 dark:text-red-400">
             {error}
           </p>
         )}
@@ -374,7 +393,7 @@ export default function StationDetail() {
           {pendingUserAction?.user.username})?
         </p>
         {error && (
-          <p role="alert" className="mt-3 text-sm text-red-600 dark:text-red-400">
+          <p role="alert" className="whitespace-pre-line mt-3 text-sm text-red-600 dark:text-red-400">
             {error}
           </p>
         )}
@@ -410,11 +429,11 @@ export default function StationDetail() {
       )}
 
       <Modal open={isUserModalOpen} onClose={() => setUserModalOpen(false)} title="Add User">
-        <form onSubmit={handleCreateUser} className="grid gap-4">
-          <FormField label="Name" htmlFor="user_name">
+        <form onSubmit={handleCreateUser} noValidate className="grid gap-4">
+          <FormField label="Name" htmlFor="user_name" required error={userFieldErrors.name}>
             <input id="user_name" value={userForm.name} onChange={updateUserField("name")} className={inputClasses} />
           </FormField>
-          <FormField label="Username" htmlFor="user_username">
+          <FormField label="Username" htmlFor="user_username" required error={userFieldErrors.username}>
             <input
               id="user_username"
               value={userForm.username}
@@ -422,23 +441,24 @@ export default function StationDetail() {
               className={inputClasses}
             />
           </FormField>
-          <FormField label="Password" htmlFor="user_password">
+          <FormField label="Password" htmlFor="user_password" required error={userFieldErrors.password}>
             <input
               id="user_password"
               type="password"
+              placeholder="At least 8 characters"
               value={userForm.password}
               onChange={updateUserField("password")}
               className={inputClasses}
             />
           </FormField>
-          <FormField label="Role" htmlFor="user_role">
+          <FormField label="Role" htmlFor="user_role" required>
             <select id="user_role" value={userForm.role} onChange={updateUserField("role")} className={inputClasses}>
               <option value="user">User</option>
               <option value="admin">Admin</option>
             </select>
           </FormField>
           {userError && (
-            <p role="alert" className="text-sm text-red-600 dark:text-red-400">
+            <p role="alert" className="whitespace-pre-line text-sm text-red-600 dark:text-red-400">
               {userError}
             </p>
           )}

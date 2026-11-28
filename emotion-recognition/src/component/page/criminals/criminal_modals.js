@@ -4,6 +4,7 @@ import ApiImage from "../../common/ApiImage";
 import { CRIMINAL_STATUSES } from "../../../data/criminal_status";
 import Button from "../../common/Button";
 import FormField from "../../common/FormField";
+import { focusFirstError, hasErrors, validateForm } from "../../../utils/validation";
 import Modal from "../../common/Modal";
 import StatusBadge from "../../common/StatusBadge";
 
@@ -102,15 +103,24 @@ export function ViewCriminalModal({ criminal, onClose }) {
   );
 }
 
+const EDIT_RULES = {
+  full_name: { label: "Full name", required: true },
+  gender: { label: "Gender", required: true },
+  status: { label: "Status", required: true },
+  crime_type: { label: "Crime type", required: true },
+};
+
 export function EditCriminalModal({ criminal, token, onClose, onSaved }) {
   const [form, setForm] = useState(() => toForm(criminal));
   const [photos, setPhotos] = useState({ front: null, left: null, right: null });
   const [error, setError] = useState(null);
+  const [fieldErrors, setFieldErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
 
   function updateField(field) {
     return (e) => {
       const value = e.target.type === "checkbox" ? e.target.checked : e.target.value;
+      setFieldErrors((errs) => (errs[field] ? { ...errs, [field]: undefined } : errs));
       setForm((f) => ({ ...f, [field]: value }));
     };
   }
@@ -118,6 +128,14 @@ export function EditCriminalModal({ criminal, token, onClose, onSaved }) {
   async function handleSubmit(e) {
     e.preventDefault();
     setError(null);
+
+    const errors = validateForm(form, EDIT_RULES);
+    setFieldErrors(errors);
+    if (hasErrors(errors)) {
+      focusFirstError(errors, "edit_");
+      setError("Please fill in all required fields.");
+      return;
+    }
 
     const payload = {
       full_name: form.full_name,
@@ -156,7 +174,12 @@ export function EditCriminalModal({ criminal, token, onClose, onSaved }) {
       const updated = await apiFetch(`/criminals/${criminal.id}`, { method: "PATCH", body, token });
       onSaved(updated);
     } catch (err) {
-      setError(err.message);
+      if (err.fieldErrors) {
+        setFieldErrors(err.fieldErrors);
+        setError("Please fix the highlighted fields.");
+      } else {
+        setError(err.message);
+      }
     } finally {
       setSubmitting(false);
     }
@@ -165,15 +188,15 @@ export function EditCriminalModal({ criminal, token, onClose, onSaved }) {
   return (
     <Modal open={!!criminal} onClose={onClose} title={criminal ? `Edit ${criminal.full_name}` : ""}>
       {criminal && (
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} noValidate className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
-            <FormField label="Full name" htmlFor="edit_full_name">
+            <FormField label="Full name" htmlFor="edit_full_name" required error={fieldErrors.full_name}>
               <input id="edit_full_name" value={form.full_name} onChange={updateField("full_name")} className={inputClasses} />
             </FormField>
             <FormField label="Alias" htmlFor="edit_alias">
               <input id="edit_alias" value={form.alias} onChange={updateField("alias")} className={inputClasses} />
             </FormField>
-            <FormField label="Gender" htmlFor="edit_gender">
+            <FormField label="Gender" htmlFor="edit_gender" required error={fieldErrors.gender}>
               <select id="edit_gender" value={form.gender} onChange={updateField("gender")} className={inputClasses}>
                 {GENDER_OPTIONS.map((g) => (
                   <option key={g} value={g}>
@@ -182,7 +205,7 @@ export function EditCriminalModal({ criminal, token, onClose, onSaved }) {
                 ))}
               </select>
             </FormField>
-            <FormField label="Status" htmlFor="edit_status">
+            <FormField label="Status" htmlFor="edit_status" required error={fieldErrors.status}>
               <select id="edit_status" value={form.status} onChange={updateField("status")} className={inputClasses}>
                 {CRIMINAL_STATUSES.map((s) => (
                   <option key={s} value={s}>
@@ -191,7 +214,7 @@ export function EditCriminalModal({ criminal, token, onClose, onSaved }) {
                 ))}
               </select>
             </FormField>
-            <FormField label="Crime type" htmlFor="edit_crime_type">
+            <FormField label="Crime type" htmlFor="edit_crime_type" required error={fieldErrors.crime_type}>
               <input id="edit_crime_type" value={form.crime_type} onChange={updateField("crime_type")} className={inputClasses} />
             </FormField>
             <FormField label="FIR case number" htmlFor="edit_fir_case_number">
@@ -340,7 +363,7 @@ export function EditCriminalModal({ criminal, token, onClose, onSaved }) {
           </div>
 
           {error && (
-            <p role="alert" className="text-sm text-red-600 dark:text-red-400">
+            <p role="alert" className="whitespace-pre-line text-sm text-red-600 dark:text-red-400">
               {error}
             </p>
           )}

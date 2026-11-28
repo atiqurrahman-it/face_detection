@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { apiFetch } from "../../../api/client";
+import { focusFirstError, hasErrors, validateForm } from "../../../utils/validation";
 import { useAuth } from "../../../context/AuthContext";
 import { BD_DIVISIONS, districtsFor, thanasFor } from "../../../data/bd_geo";
 import AdminLayout from "../../layout/AdminLayout";
@@ -27,6 +28,17 @@ const emptyForm = {
 const inputClasses =
   "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-slate-600 dark:bg-slate-800 dark:text-white";
 
+const STATION_RULES = {
+  division: { label: "Division", required: true },
+  district: { label: "District", required: true },
+  thana: { label: "Thana", required: true },
+  name: { label: "Station name", required: true },
+  code: { label: "Station code", required: true },
+  admin_name: { label: "Admin name", required: true },
+  admin_username: { label: "Admin username", required: true },
+  admin_password: { label: "Admin password", required: true, minLength: 8 },
+};
+
 export default function CreateStation() {
   const { token } = useAuth();
   const [stations, setStations] = useState([]);
@@ -35,6 +47,8 @@ export default function CreateStation() {
   const [isModalOpen, setModalOpen] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [error, setError] = useState(null);
+  const [formError, setFormError] = useState(null);
+  const [fieldErrors, setFieldErrors] = useState({});
 
   const [filterDivision, setFilterDivision] = useState("");
   const [filterDistrict, setFilterDistrict] = useState("");
@@ -57,6 +71,7 @@ export default function CreateStation() {
 
     return apiFetch(`/stations?${params.toString()}`, { token })
       .then((response) => {
+        setError(null);
         setStations(response.data);
         setPagination(response.pagination);
       })
@@ -81,6 +96,7 @@ export default function CreateStation() {
   function updateField(field) {
     return (e) => {
       const { value } = e.target;
+      setFieldErrors((errs) => (errs[field] ? { ...errs, [field]: undefined } : errs));
       setForm((f) => ({
         ...f,
         [field]: value,
@@ -91,14 +107,21 @@ export default function CreateStation() {
   }
 
   function openModal() {
-    setError(null);
+    setFormError(null);
+    setFieldErrors({});
     setForm(emptyForm);
     setModalOpen(true);
   }
 
   async function handleSubmit(e) {
     e.preventDefault();
-    setError(null);
+    setFormError(null);
+    const errors = validateForm(form, STATION_RULES);
+    setFieldErrors(errors);
+    if (hasErrors(errors)) {
+      focusFirstError(errors);
+      return;
+    }
     try {
       await apiFetch("/stations", { method: "POST", body: form, token });
       setForm(emptyForm);
@@ -106,7 +129,8 @@ export default function CreateStation() {
       setTotalStationsCount((count) => count + 1);
       fetchStations();
     } catch (err) {
-      setError(err.message);
+      if (err.fieldErrors) setFieldErrors(err.fieldErrors);
+      else setFormError(err.message);
     }
   }
 
@@ -198,7 +222,7 @@ export default function CreateStation() {
         <Card>
           <h2 className="mb-4 text-lg font-semibold text-slate-900 dark:text-white">Stations</h2>
           {error && (
-            <p role="alert" className="mb-4 text-sm text-red-600 dark:text-red-400">
+            <p role="alert" className="whitespace-pre-line mb-4 text-sm text-red-600 dark:text-red-400">
               {error}
             </p>
           )}
@@ -238,8 +262,8 @@ export default function CreateStation() {
       </div>
 
       <Modal open={isModalOpen} onClose={() => setModalOpen(false)} title="Create Station">
-        <form onSubmit={handleSubmit} className="grid gap-4">
-          <FormField label="Division" htmlFor="division">
+        <form onSubmit={handleSubmit} noValidate className="grid gap-4">
+          <FormField label="Division" htmlFor="division" required error={fieldErrors.division}>
             <SearchableSelect
               id="division"
               options={BD_DIVISIONS.map((d) => d.name)}
@@ -249,7 +273,7 @@ export default function CreateStation() {
               className={inputClasses}
             />
           </FormField>
-          <FormField label="District" htmlFor="district">
+          <FormField label="District" htmlFor="district" required error={fieldErrors.district}>
             <SearchableSelect
               id="district"
               options={formDistrictOptions}
@@ -260,7 +284,7 @@ export default function CreateStation() {
               className={inputClasses}
             />
           </FormField>
-          <FormField label="Thana" htmlFor="thana">
+          <FormField label="Thana" htmlFor="thana" required error={fieldErrors.thana}>
             <SearchableSelect
               id="thana"
               options={formThanaOptions}
@@ -271,16 +295,16 @@ export default function CreateStation() {
               className={inputClasses}
             />
           </FormField>
-          <FormField label="Station name" htmlFor="name">
+          <FormField label="Station name" htmlFor="name" required error={fieldErrors.name}>
             <input id="name" value={form.name} onChange={updateField("name")} className={inputClasses} />
           </FormField>
-          <FormField label="Station code" htmlFor="code">
+          <FormField label="Station code" htmlFor="code" required error={fieldErrors.code}>
             <input id="code" value={form.code} onChange={updateField("code")} className={inputClasses} />
           </FormField>
-          <FormField label="Admin name" htmlFor="admin_name">
+          <FormField label="Admin name" htmlFor="admin_name" required error={fieldErrors.admin_name}>
             <input id="admin_name" value={form.admin_name} onChange={updateField("admin_name")} className={inputClasses} />
           </FormField>
-          <FormField label="Admin username" htmlFor="admin_username">
+          <FormField label="Admin username" htmlFor="admin_username" required error={fieldErrors.admin_username}>
             <input
               id="admin_username"
               value={form.admin_username}
@@ -288,18 +312,19 @@ export default function CreateStation() {
               className={inputClasses}
             />
           </FormField>
-          <FormField label="Admin password" htmlFor="admin_password">
+          <FormField label="Admin password" htmlFor="admin_password" required error={fieldErrors.admin_password}>
             <input
               id="admin_password"
               type="password"
+              placeholder="At least 8 characters"
               value={form.admin_password}
               onChange={updateField("admin_password")}
               className={inputClasses}
             />
           </FormField>
-          {error && (
-            <p role="alert" className="text-sm text-red-600 dark:text-red-400">
-              {error}
+          {formError && (
+            <p role="alert" className="whitespace-pre-line text-sm text-red-600 dark:text-red-400">
+              {formError}
             </p>
           )}
           <Button type="submit">Create station</Button>

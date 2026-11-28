@@ -204,7 +204,7 @@ test("submitting the modal form posts and appends the new station to the list", 
 
   expect(await screen.findByText(/Gulshan Thana/)).toBeInTheDocument();
   expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-});
+}, 15000); // many SearchableSelect interactions; slow under a parallel test run
 
 test("shows an error message inside the modal when station creation fails", async () => {
   mockStationsApi([{ id: 1, name: "Existing Thana", division: "Dhaka", district: "Dhaka", thana: "Existing", code: "DHK-02", criminal_count: 0 }]);
@@ -217,7 +217,12 @@ test("shows an error message inside the modal when station creation fails", asyn
 
   fireEvent.change(within(dialog).getByLabelText("Station name"), { target: { value: "Gulshan Thana" } });
   fireEvent.change(within(dialog).getByLabelText(/station code/i), { target: { value: "DHK-02" } });
+  const callsBefore = global.fetch.mock.calls.length;
   fireEvent.click(within(dialog).getByRole("button", { name: /^create station$/i }));
 
-  expect(await within(dialog).findByRole("alert")).toBeInTheDocument();
+  // Missing required fields are flagged next to each field, and nothing is sent.
+  expect(await within(dialog).findByText("Division is required")).toBeInTheDocument();
+  expect(within(dialog).getByText("Admin password is required")).toBeInTheDocument();
+  expect(within(dialog).queryByText("Station name is required")).not.toBeInTheDocument();
+  expect(global.fetch.mock.calls.length).toBe(callsBefore);
 });
