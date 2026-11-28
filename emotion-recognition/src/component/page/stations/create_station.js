@@ -6,6 +6,7 @@ import { BD_DIVISIONS, districtsFor, thanasFor } from "../../../data/bd_geo";
 import AdminLayout from "../../layout/AdminLayout";
 import Button from "../../common/Button";
 import Card from "../../common/Card";
+import FilterSection from "../../common/FilterSection";
 import FormField from "../../common/FormField";
 import Modal from "../../common/Modal";
 import Pagination from "../../common/Pagination";
@@ -120,77 +121,78 @@ export default function CreateStation() {
         </div>
 
         <Card>
-          <h2 className="mb-4 text-lg font-semibold text-slate-900 dark:text-white">Find stations</h2>
-          <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-5">
-            <FormField label="Division" htmlFor="filter_division">
-              <SearchableSelect
-                id="filter_division"
-                options={BD_DIVISIONS.map((d) => d.name)}
-                value={filterDivision}
-                onChange={(e) => {
-                  setFilterDivision(e.target.value);
-                  setFilterDistrict("");
-                  setFilterThana("");
-                  setCurrentPage(1);
-                }}
-                placeholder="All divisions"
-                className={inputClasses}
-              />
-            </FormField>
-            <FormField label="District" htmlFor="filter_district">
-              <SearchableSelect
-                id="filter_district"
-                options={filterDistrictOptions}
-                value={filterDistrict}
-                onChange={(e) => {
-                  setFilterDistrict(e.target.value);
-                  setFilterThana("");
-                  setCurrentPage(1);
-                }}
-                disabled={!filterDivision}
-                placeholder="All districts"
-                className={inputClasses}
-              />
-            </FormField>
-            <FormField label="Thana" htmlFor="filter_thana">
-              <SearchableSelect
-                id="filter_thana"
-                options={filterThanaOptions}
-                value={filterThana}
-                onChange={(e) => {
-                  setFilterThana(e.target.value);
-                  setCurrentPage(1);
-                }}
-                disabled={!filterDistrict}
-                placeholder="All thanas"
-                className={inputClasses}
-              />
-            </FormField>
-            <FormField label="Station name" htmlFor="filter_name">
-              <input
-                id="filter_name"
-                placeholder="Search station name"
-                value={filterName}
-                onChange={(e) => {
-                  setFilterName(e.target.value);
-                  setCurrentPage(1);
-                }}
-                className={inputClasses}
-              />
-            </FormField>
-            <FormField label="Station code" htmlFor="filter_code">
-              <input
-                id="filter_code"
-                placeholder="Search station code"
-                value={filterCode}
-                onChange={(e) => {
-                  setFilterCode(e.target.value);
-                  setCurrentPage(1);
-                }}
-                className={inputClasses}
-              />
-            </FormField>
-          </div>
+          <FilterSection title="Find stations">
+            <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-5">
+              <FormField label="Division" htmlFor="filter_division">
+                <SearchableSelect
+                  id="filter_division"
+                  options={BD_DIVISIONS.map((d) => d.name)}
+                  value={filterDivision}
+                  onChange={(e) => {
+                    setFilterDivision(e.target.value);
+                    setFilterDistrict("");
+                    setFilterThana("");
+                    setCurrentPage(1);
+                  }}
+                  placeholder="All divisions"
+                  className={inputClasses}
+                />
+              </FormField>
+              <FormField label="District" htmlFor="filter_district">
+                <SearchableSelect
+                  id="filter_district"
+                  options={filterDistrictOptions}
+                  value={filterDistrict}
+                  onChange={(e) => {
+                    setFilterDistrict(e.target.value);
+                    setFilterThana("");
+                    setCurrentPage(1);
+                  }}
+                  disabled={!filterDivision}
+                  placeholder="All districts"
+                  className={inputClasses}
+                />
+              </FormField>
+              <FormField label="Thana" htmlFor="filter_thana">
+                <SearchableSelect
+                  id="filter_thana"
+                  options={filterThanaOptions}
+                  value={filterThana}
+                  onChange={(e) => {
+                    setFilterThana(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  disabled={!filterDistrict}
+                  placeholder="All thanas"
+                  className={inputClasses}
+                />
+              </FormField>
+              <FormField label="Station name" htmlFor="filter_name">
+                <input
+                  id="filter_name"
+                  placeholder="Search station name"
+                  value={filterName}
+                  onChange={(e) => {
+                    setFilterName(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className={inputClasses}
+                />
+              </FormField>
+              <FormField label="Station code" htmlFor="filter_code">
+                <input
+                  id="filter_code"
+                  placeholder="Search station code"
+                  value={filterCode}
+                  onChange={(e) => {
+                    setFilterCode(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className={inputClasses}
+                />
+              </FormField>
+            </div>
+          </FilterSection>
         </Card>
 
         <Card>

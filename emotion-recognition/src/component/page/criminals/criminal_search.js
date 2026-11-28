@@ -11,6 +11,7 @@ import Button from "../../common/Button";
 import Card from "../../common/Card";
 import DataTable from "../../common/DataTable";
 import FaceOverlay from "../../common/FaceOverlay";
+import FilterSection from "../../common/FilterSection";
 import FormField from "../../common/FormField";
 import Modal from "../../common/Modal";
 import Pagination from "../../common/Pagination";
@@ -364,14 +365,14 @@ export default function CriminalSearch() {
                 />
               </FormField>
             </div>
-            <div className="space-y-2">
+            <div className="w-full space-y-2 sm:w-auto">
               <Button type="button" variant="secondary" onClick={() => setShowCamera((v) => !v)}>
                 {showCamera ? "Close camera" : "Use live camera"}
               </Button>
               {showCamera && (
                 <div className="space-y-2">
-                  <div className="relative w-64 overflow-hidden rounded-lg border border-slate-300 bg-slate-900 dark:border-slate-600">
-                    <Webcam ref={webcamRef} screenshotFormat="image/jpeg" className="w-64" />
+                  <div className="relative w-full max-w-xs overflow-hidden rounded-lg border border-slate-300 bg-slate-900 dark:border-slate-600 sm:w-64">
+                    <Webcam ref={webcamRef} screenshotFormat="image/jpeg" className="w-full" />
                     <FaceOverlay faces={overlayFaces} sourceWidth={frameSize.width} sourceHeight={frameSize.height} />
                   </div>
                   <p
@@ -415,99 +416,100 @@ export default function CriminalSearch() {
         </Card>
 
         <Card>
-          <h2 className="mb-4 text-lg font-semibold text-slate-900 dark:text-white">Filters</h2>
-          <div className={`grid gap-4 sm:grid-cols-2 ${isSuperAdmin ? "lg:grid-cols-6" : "lg:grid-cols-3"}`}>
-            <FormField label="Search" htmlFor="filter_q">
-              <input
-                id="filter_q"
-                placeholder="Name or NID"
-                value={filterQ}
-                onChange={(e) => {
-                  setFilterQ(e.target.value);
-                  setCurrentPage(1);
-                }}
-                className={inputClasses}
-              />
-            </FormField>
-            <FormField label="Status" htmlFor="filter_status">
-              <select
-                id="filter_status"
-                value={filterStatus}
-                onChange={(e) => {
-                  setFilterStatus(e.target.value);
-                  setCurrentPage(1);
-                }}
-                className={inputClasses}
-              >
-                <option value="">All statuses</option>
-                {CRIMINAL_STATUSES.map((s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
-                ))}
-              </select>
-            </FormField>
-            <FormField label="Crime type" htmlFor="filter_crime_type">
-              <input
-                id="filter_crime_type"
-                placeholder="Search crime type"
-                value={filterCrimeType}
-                onChange={(e) => {
-                  setFilterCrimeType(e.target.value);
-                  setCurrentPage(1);
-                }}
-                className={inputClasses}
-              />
-            </FormField>
-            {isSuperAdmin && (
-              <>
-                <FormField label="Division" htmlFor="filter_division">
-                  <SearchableSelect
-                    id="filter_division"
-                    options={BD_DIVISIONS.map((d) => d.name)}
-                    value={filterDivision}
-                    onChange={(e) => {
-                      setFilterDivision(e.target.value);
-                      setFilterDistrict("");
-                      setFilterStationLabel("");
-                      setCurrentPage(1);
-                    }}
-                    placeholder="All divisions"
-                    className={inputClasses}
-                  />
-                </FormField>
-                <FormField label="District" htmlFor="filter_district">
-                  <SearchableSelect
-                    id="filter_district"
-                    options={filterDistrictOptions}
-                    value={filterDistrict}
-                    onChange={(e) => {
-                      setFilterDistrict(e.target.value);
-                      setFilterStationLabel("");
-                      setCurrentPage(1);
-                    }}
-                    disabled={!filterDivision}
-                    placeholder="All districts"
-                    className={inputClasses}
-                  />
-                </FormField>
-                <FormField label="Station" htmlFor="filter_station">
-                  <SearchableSelect
-                    id="filter_station"
-                    options={filterStationOptions.map(stationLabel)}
-                    value={filterStationLabel}
-                    onChange={(e) => {
-                      setFilterStationLabel(e.target.value);
-                      setCurrentPage(1);
-                    }}
-                    disabled={!filterDistrict}
-                    placeholder="All stations"
-                    className={inputClasses}
-                  />
-                </FormField>
-              </>
-            )}
-          </div>
+          <FilterSection title="Filters">
+            <div className={`grid gap-4 sm:grid-cols-2 ${isSuperAdmin ? "lg:grid-cols-6" : "lg:grid-cols-3"}`}>
+              <FormField label="Search" htmlFor="filter_q">
+                <input
+                  id="filter_q"
+                  placeholder="Name or NID"
+                  value={filterQ}
+                  onChange={(e) => {
+                    setFilterQ(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className={inputClasses}
+                />
+              </FormField>
+              <FormField label="Status" htmlFor="filter_status">
+                <select
+                  id="filter_status"
+                  value={filterStatus}
+                  onChange={(e) => {
+                    setFilterStatus(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className={inputClasses}
+                >
+                  <option value="">All statuses</option>
+                  {CRIMINAL_STATUSES.map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
+                </select>
+              </FormField>
+              <FormField label="Crime type" htmlFor="filter_crime_type">
+                <input
+                  id="filter_crime_type"
+                  placeholder="Search crime type"
+                  value={filterCrimeType}
+                  onChange={(e) => {
+                    setFilterCrimeType(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className={inputClasses}
+                />
+              </FormField>
+              {isSuperAdmin && (
+                <>
+                  <FormField label="Division" htmlFor="filter_division">
+                    <SearchableSelect
+                      id="filter_division"
+                      options={BD_DIVISIONS.map((d) => d.name)}
+                      value={filterDivision}
+                      onChange={(e) => {
+                        setFilterDivision(e.target.value);
+                        setFilterDistrict("");
+                        setFilterStationLabel("");
+                        setCurrentPage(1);
+                      }}
+                      placeholder="All divisions"
+                      className={inputClasses}
+                    />
+                  </FormField>
+                  <FormField label="District" htmlFor="filter_district">
+                    <SearchableSelect
+                      id="filter_district"
+                      options={filterDistrictOptions}
+                      value={filterDistrict}
+                      onChange={(e) => {
+                        setFilterDistrict(e.target.value);
+                        setFilterStationLabel("");
+                        setCurrentPage(1);
+                      }}
+                      disabled={!filterDivision}
+                      placeholder="All districts"
+                      className={inputClasses}
+                    />
+                  </FormField>
+                  <FormField label="Station" htmlFor="filter_station">
+                    <SearchableSelect
+                      id="filter_station"
+                      options={filterStationOptions.map(stationLabel)}
+                      value={filterStationLabel}
+                      onChange={(e) => {
+                        setFilterStationLabel(e.target.value);
+                        setCurrentPage(1);
+                      }}
+                      disabled={!filterDistrict}
+                      placeholder="All stations"
+                      className={inputClasses}
+                    />
+                  </FormField>
+                </>
+              )}
+            </div>
+          </FilterSection>
         </Card>
 
         <Card>

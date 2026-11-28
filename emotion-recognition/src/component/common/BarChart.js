@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTheme } from "../../context/ThemeContext";
 
 const CHROME = {
@@ -54,7 +54,20 @@ function topRoundedRectPath(x, width, yTop, yBottom, radius) {
 export default function BarChart({ data, series, height = 240, formatValue = (v) => v.toLocaleString() }) {
   const { theme } = useTheme();
   const [hovered, setHovered] = useState(null);
-  const width = 640;
+  // Draw at the container's real pixel width, so labels keep their size on phones
+  // instead of shrinking with a fixed 640-wide viewBox.
+  const containerRef = useRef(null);
+  const [width, setWidth] = useState(640);
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return undefined;
+    const observer = new ResizeObserver(([entry]) => {
+      const w = Math.round(entry.contentRect.width);
+      if (w > 0) setWidth(Math.max(280, w));
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
   const marginTop = 12;
   const marginRight = 12;
   const marginBottom = 28;
@@ -79,7 +92,7 @@ export default function BarChart({ data, series, height = 240, formatValue = (v)
   const chrome = (role) => CHROME[role][theme === "dark" ? "dark" : "light"];
 
   return (
-    <div className="w-full">
+    <div ref={containerRef} className="w-full">
       <svg viewBox={`0 0 ${width} ${height}`} className="w-full" role="img" aria-label="Bar chart">
         {ticks.map((tick) => {
           const y = yFor(tick);
