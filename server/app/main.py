@@ -15,7 +15,12 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[os.environ.get("FRONTEND_ORIGIN", "http://localhost:3000")],
+    # Comma-separated, e.g. "http://localhost:3060,https://myapp.vercel.app"
+    allow_origins=[
+        o.strip()
+        for o in os.environ.get("FRONTEND_ORIGIN", "http://localhost:3000").split(",")
+        if o.strip()
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

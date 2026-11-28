@@ -14,6 +14,8 @@ export async function apiFetch(path, { method = "GET", body, token, headers = {}
     method,
     headers: {
       ...(isFormData ? {} : { "Content-Type": "application/json" }),
+      // ngrok's free plan shows a warning page to browsers unless this header is sent.
+      "ngrok-skip-browser-warning": "true",
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...headers,
     },
