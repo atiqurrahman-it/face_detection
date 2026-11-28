@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { API_BASE_URL, apiFetch } from "../../../api/client";
+import { apiFetch } from "../../../api/client";
+import ApiImage from "../../common/ApiImage";
 import { useAuth } from "../../../context/AuthContext";
 import AdminLayout from "../../layout/AdminLayout";
 import Button from "../../common/Button";
@@ -25,8 +26,8 @@ function Thumbnail({ criminal }) {
     return <UserCircleIcon className="h-10 w-10 text-slate-300 dark:text-slate-600" />;
   }
   return (
-    <img
-      src={`${API_BASE_URL}${frontPhoto.url}`}
+    <ApiImage
+      path={frontPhoto.url}
       alt=""
       className="h-10 w-10 rounded-full border border-slate-200 object-cover dark:border-slate-700"
     />

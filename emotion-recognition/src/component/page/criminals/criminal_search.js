@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import Webcam from "react-webcam";
-import { apiFetch, API_BASE_URL, WS_BASE_URL as DETECTION_WS_URL } from "../../../api/client";
+import { apiFetch, WS_BASE_URL as DETECTION_WS_URL } from "../../../api/client";
+import ApiImage from "../../common/ApiImage";
 import { useAuth } from "../../../context/AuthContext";
 import { BD_DIVISIONS, districtsFor } from "../../../data/bd_geo";
 import { CRIMINAL_STATUSES } from "../../../data/criminal_status";
@@ -42,8 +43,8 @@ function Thumbnail({ criminal }) {
     return <UserCircleIcon className="h-10 w-10 text-slate-300 dark:text-slate-600" />;
   }
   return (
-    <img
-      src={`${API_BASE_URL}${frontPhoto.url}`}
+    <ApiImage
+      path={frontPhoto.url}
       alt=""
       className="h-10 w-10 rounded-full border border-slate-200 object-cover dark:border-slate-700"
     />

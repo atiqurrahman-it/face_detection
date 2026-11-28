@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { API_BASE_URL, apiFetch } from "../../../api/client";
+import { apiFetch } from "../../../api/client";
+import ApiImage from "../../common/ApiImage";
 import { CRIMINAL_STATUSES } from "../../../data/criminal_status";
 import Button from "../../common/Button";
 import FormField from "../../common/FormField";
@@ -49,9 +50,9 @@ export function ViewCriminalModal({ criminal, onClose }) {
             {["front", "left_profile", "right_profile"].map((angle) => {
               const photo = criminal.photos.find((p) => p.angle === angle);
               return photo ? (
-                <img
+                <ApiImage
                   key={angle}
-                  src={`${API_BASE_URL}${photo.url}`}
+                  path={photo.url}
                   alt={angle}
                   className="h-24 w-24 rounded-lg border border-slate-200 object-cover dark:border-slate-700"
                 />
