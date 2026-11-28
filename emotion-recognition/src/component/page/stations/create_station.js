@@ -307,6 +307,7 @@ export default function CreateStation() {
           <FormField label="Admin username" htmlFor="admin_username" required error={fieldErrors.admin_username}>
             <input
               id="admin_username"
+              autoComplete="off"
               value={form.admin_username}
               onChange={updateField("admin_username")}
               className={inputClasses}
@@ -316,6 +317,7 @@ export default function CreateStation() {
             <input
               id="admin_password"
               type="password"
+              autoComplete="new-password"
               placeholder="At least 8 characters"
               value={form.admin_password}
               onChange={updateField("admin_password")}

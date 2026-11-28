@@ -86,12 +86,13 @@ export default function UserManagement() {
           <input id="name" value={form.name} onChange={updateField("name")} className={inputClasses} />
         </FormField>
         <FormField label="Username" htmlFor="username" required error={fieldErrors.username}>
-          <input id="username" value={form.username} onChange={updateField("username")} className={inputClasses} />
+          <input id="username" autoComplete="off" value={form.username} onChange={updateField("username")} className={inputClasses} />
         </FormField>
         <FormField label="Password" htmlFor="password" required error={fieldErrors.password}>
           <input
             id="password"
             type="password"
+            autoComplete="new-password"
             placeholder="At least 8 characters"
             value={form.password}
             onChange={updateField("password")}

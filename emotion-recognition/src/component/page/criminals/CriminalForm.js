@@ -129,8 +129,13 @@ export default function CriminalForm({ lockedStationId = null, onSuccess, onCanc
     setError(null);
 
     const stationId = isLocked ? Number(effectiveLockedStationId) : stationsByLabel[form.stationLabel];
-    const errors = validateForm(form, CRIMINAL_RULES);
+    const errors = {};
+    if (!isLocked) {
+      if (!form.division) errors.division = "Division is required";
+      if (!form.district) errors.district = "District is required";
+    }
     if (!stationId) errors.station = "Please select a station";
+    Object.assign(errors, validateForm(form, CRIMINAL_RULES));
     if (!frontPhoto) errors.front_photo = "Front photo is required";
     setFieldErrors(errors);
     if (hasErrors(errors)) {
@@ -208,7 +213,7 @@ export default function CriminalForm({ lockedStationId = null, onSuccess, onCanc
             </p>
           ) : (
             <>
-              <FormField label="Division" htmlFor="division" required>
+              <FormField label="Division" htmlFor="division" required error={fieldErrors.division}>
                 <SearchableSelect
                   id="division"
                   options={BD_DIVISIONS.map((d) => d.name)}
@@ -218,7 +223,7 @@ export default function CriminalForm({ lockedStationId = null, onSuccess, onCanc
                   className={inputClasses}
                 />
               </FormField>
-              <FormField label="District" htmlFor="district" required>
+              <FormField label="District" htmlFor="district" required error={fieldErrors.district}>
                 <SearchableSelect
                   id="district"
                   options={districtOptions}

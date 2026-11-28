@@ -1,5 +1,7 @@
-const errorBorders =
-  "[&>input]:!border-red-500 [&>select]:!border-red-500 [&>textarea]:!border-red-500 [&>div>input:first-child]:!border-red-500";
+const errorBorders = [
+  "[&>input]:!border-red-500 [&>select]:!border-red-500 [&>textarea]:!border-red-500 [&>div>input:first-child]:!border-red-500",
+  "[&>input]:!ring-red-500 [&>select]:!ring-red-500 [&>textarea]:!ring-red-500 [&>div>input:first-child]:!ring-red-500",
+].join(" ");
 
 export default function FormField({ label, htmlFor, error, required = false, children }) {
   return (

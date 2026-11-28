@@ -436,6 +436,7 @@ export default function StationDetail() {
           <FormField label="Username" htmlFor="user_username" required error={userFieldErrors.username}>
             <input
               id="user_username"
+              autoComplete="off"
               value={userForm.username}
               onChange={updateUserField("username")}
               className={inputClasses}
@@ -445,6 +446,7 @@ export default function StationDetail() {
             <input
               id="user_password"
               type="password"
+              autoComplete="new-password"
               placeholder="At least 8 characters"
               value={userForm.password}
               onChange={updateUserField("password")}
